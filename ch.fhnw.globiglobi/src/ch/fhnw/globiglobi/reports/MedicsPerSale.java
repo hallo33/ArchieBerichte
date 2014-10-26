@@ -31,6 +31,7 @@ import ch.unibe.iam.scg.archie.model.AbstractTimeSeries;
  * @author Lukas Eisenhut
  * @author Stefan Waldenmaier
  */
+// globi isch de best
 public class MedicsPerSale extends AbstractTimeSeries {
 	
 	public MedicsPerSale(){
