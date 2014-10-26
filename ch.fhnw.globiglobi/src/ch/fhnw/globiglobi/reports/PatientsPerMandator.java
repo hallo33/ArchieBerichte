@@ -35,7 +35,7 @@ import ch.unibe.iam.scg.archie.ui.widgets.WidgetTypes;
  * Provides statistics about patients per mandator. Resulting dataset contains personal information
  * about the patients grouped by every mandator.
  * </p>
- * TESST
+ * 
  * 
  * @author Lukas Eisenhut
  * @author Stefan Waldenmaier
