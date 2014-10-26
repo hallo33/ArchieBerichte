@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Archie Samples
+Bundle-SymbolicName: ch.fhnw.globiglobi;singleton:=true
+Bundle-Version: 3.0.0.qualifier
+Fragment-Host: ch.unibe.iam.scg.archie;bundle-version="0.7"
+Bundle-Localization: src/ch/fhnw/globiglobi/reports/i18n/messages
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Import-Package: ch.elexis.data,
+ ch.rgw.tools
+Require-Bundle: org.eclipse.core.runtime,
+ org.eclipse.jface
+Bundle-Vendor: globiglobi

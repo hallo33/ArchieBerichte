@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<fragment>
+   <extension
+         point="ch.unibe.iam.scg.archie.dataprovider">
+      <DataProvider
+            category="ch.fhnw.globiglobi.reports.ProviderCategory"
+            class="ch.fhnw.globiglobi.reports.PatientsPerMandator"
+            name="Patienten Pro Mandant">
+      </DataProvider>
+      <DataProvider
+            category="ch.fhnw.globiglobi.reports.ProviderCategory"
+            class="ch.fhnw.globiglobi.reports.MedicsPerSale"
+            name="Medics Per Sale">
+      </DataProvider>
+      <category
+            id="ch.fhnw.globiglobi.reports.ProviderCategory"
+            name="FHNW Globiglobi">
+      </category>
+   </extension>
+
+</fragment>
