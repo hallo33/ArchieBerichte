@@ -113,6 +113,8 @@ public class MedicsPerSale extends AbstractTimeSeries {
 		return Status.OK_STATUS;
 	}
 	
+	// test
+	
 	/**
 	 * @return True if statistic should be created for current mandator only, false else.
 	 */
