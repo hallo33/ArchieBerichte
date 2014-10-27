@@ -46,7 +46,12 @@ public final class Messages extends NLS {
 	// Medics Per Sale
 	public static String MEDICSPERSALE_TITLE;
 	public static String MEDICSPERSALE_DESCRIPTION;
-
+	public static String MEDICSPERSALE_HEADING_PRODUCER;
+	public static String MEDICSPERSALE_HEADING_MEDINAME;
+	public static String MEDICSPERSALE_HEADING_EAN;
+	public static String MEDICSPERSALE_HEADING_PHARMACODE;
+	public static String MEDICSPERSALE_HEADING_QUANTITY;
+	public static String MEDICSPERSALE_HEADING_SALE;
 	static {
 		// Load message values from bundle file.
 		NLS.initializeMessages(BUNDLE_NAME, Messages.class);
