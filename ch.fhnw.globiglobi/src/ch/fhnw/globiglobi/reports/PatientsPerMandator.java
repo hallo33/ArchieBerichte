@@ -77,7 +77,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	 * Create dataset headings in this method
 	 */
 	protected List<String> createHeadings(){
-		final ArrayList<String> headings = new ArrayList<String>(12);
+		final ArrayList<String> headings = new ArrayList<String>(13);
 		headings.add(Messages.PATIENTPERMAN_HEADING_STAMMARZT);
 		headings.add(Messages.PATIENTPERMAN_HEADING_PATNAME);
 		headings.add(Messages.PATIENTPERMAN_HEADING_PATPRENAME);
@@ -90,6 +90,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 		headings.add(Messages.PATIENTPERMAN_HEADING_PHONE2);
 		headings.add(Messages.PATIENTPERMAN_HEADING_FAX);
 		headings.add(Messages.PATIENTPERMAN_HEADING_MAIL);
+		headings.add(Messages.PATIENTPERMAN_HEADING_FALL);
 		return headings;
 	}
 	
@@ -99,7 +100,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	@Override
 	protected IStatus createContent(IProgressMonitor monitor) {
 		// initialize list
-		final List<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(12);
+		final List<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(13);
 		
 		// Create Queries
 		final Query<Patient> patientQuery = new Query<Patient>(Patient.class);
@@ -120,12 +121,12 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 			String patvname = patient.getVorname();
 			String gender = patient.getGeschlecht();
 			String birthday = patient.getGeburtsdatum();
-			// String phone1 = patient.g;
 			String mail = patient.getMailAddress();
+			String strasse = patient.getPostAnschrift(false);
 
 			// get the Address
 			Anschrift anschrift = patient.getAnschrift();
-			String street = patient.get("Strasse");
+			String street = anschrift.getStrasse();
 			String plz = anschrift.getPlz();
 			String city = anschrift.getOrt();
 
@@ -168,8 +169,9 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 				// fill the rows with content
 				final Comparable<?>[] row =
 					{
-						mandant, fallID, behID, patname, patvname, gender, birthday, street, plz,
-						city, "Fax", mail
+							mandant, patname, patvname, gender, birthday, strasse, plz,
+ city,
+							"phone1", "phone2", "Fax", mail, fallID
 					};
 				
 				// add the row to the list
