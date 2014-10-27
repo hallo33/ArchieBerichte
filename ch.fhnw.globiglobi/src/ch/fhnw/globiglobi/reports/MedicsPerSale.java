@@ -18,8 +18,13 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
+import ch.elexis.data.Artikel;
+import ch.elexis.data.Query;
 import ch.fhnw.globiglobi.reports.i18n.Messages;
+import ch.unibe.iam.scg.archie.annotations.GetProperty;
+import ch.unibe.iam.scg.archie.annotations.SetProperty;
 import ch.unibe.iam.scg.archie.model.AbstractTimeSeries;
+import ch.unibe.iam.scg.archie.ui.widgets.WidgetTypes;
 
 /**
  * <p>
@@ -33,6 +38,11 @@ import ch.unibe.iam.scg.archie.model.AbstractTimeSeries;
  */
 public class MedicsPerSale extends AbstractTimeSeries {
 	
+	/**
+	 * Shows only patients for active mandator if true, all patients in the system else.
+	 */
+	private boolean currentMandatorOnly;
+
 	public MedicsPerSale(){
 		super(Messages.MEDICSPERSALE_TITLE);
 	}
@@ -49,7 +59,13 @@ public class MedicsPerSale extends AbstractTimeSeries {
 	 */
 	@Override
 	protected List<String> createHeadings(){
-		final ArrayList<String> headings = new ArrayList<String>(3);
+		final ArrayList<String> headings = new ArrayList<String>(6);
+		headings.add(Messages.MEDICSPERSALE_HEADING_PRODUCER);
+		headings.add(Messages.MEDICSPERSALE_HEADING_MEDINAME);
+		headings.add(Messages.MEDICSPERSALE_HEADING_EAN);
+		headings.add(Messages.MEDICSPERSALE_HEADING_PHARMACODE);
+		headings.add(Messages.MEDICSPERSALE_HEADING_QUANTITY);
+		headings.add(Messages.MEDICSPERSALE_HEADING_SALE);
 		return headings;
 	}
 	
@@ -58,6 +74,58 @@ public class MedicsPerSale extends AbstractTimeSeries {
 	 */
 	@Override
 	protected IStatus createContent(IProgressMonitor monitor){
+		// initialize list
+		final List<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(6);
+		
+		// Create Queries
+		final Query<Artikel> articleQuery = new Query<Artikel>(Artikel.class);
+		
+		// Execute Queries
+		final List<Artikel> art = articleQuery.execute();
+		
+		for (final Artikel article : art) {
+			// check for cancelation
+			if (monitor.isCanceled())
+				return Status.CANCEL_STATUS;
+			
+			// definition of the variables for the result
+			String producer = "";
+			String mediname = article.getName();
+			String ean = article.getEAN();
+			String pharmacode = article.getPharmaCode();
+			String quantity = "";
+			String sale = "";
+			
+			// fill the rows with content
+			final Comparable<?>[] row = {
+				producer, mediname, ean, pharmacode, quantity, sale
+			};
+			
+			// add the row to the list
+			content.add(row);
+		}
+		
+		// set content in the dataSet
+		this.dataSet.setContent(content);
+		
+		// job finished successfully
+		monitor.done();
 		return Status.OK_STATUS;
+	}
+
+	/**
+	 * @return True if statistic should be created for current mandator only, false else.
+	 */
+	@GetProperty(name = "Active Mandator Only", index = 1, widgetType = WidgetTypes.BUTTON_CHECKBOX, description = "Compute statistics only for the current mandator. If unchecked, the statistic will be computed for all mandators.")
+	public boolean getCurrentMandatorOnly(){
+		return this.currentMandatorOnly;
+	}
+	
+	/**
+	 * @param currentMandatorOnly
+	 */
+	@SetProperty(name = "Active Mandator Only")
+	public void setCurrentMandatorOnly(final boolean currentMandatorOnly){
+		this.currentMandatorOnly = currentMandatorOnly;
 	}
 }
