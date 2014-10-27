@@ -12,6 +12,7 @@
 package ch.fhnw.globiglobi.reports;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -21,7 +22,6 @@ import org.eclipse.core.runtime.Status;
 import ch.elexis.data.Anschrift;
 import ch.elexis.data.Fall;
 import ch.elexis.data.Konsultation;
-import ch.elexis.data.Mandant;
 import ch.elexis.data.Patient;
 import ch.elexis.data.Query;
 import ch.fhnw.globiglobi.reports.i18n.Messages;
@@ -51,6 +51,11 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	 * Shows only patients of the specific mandator
 	 */
 	private String selectMandatorID;
+	
+	/**
+	 * Is used for selecting uniques mandators to a Fall
+	 */
+	private boolean check;
 	
 	/**
 	 * Date format for data that comes from the database.
@@ -129,39 +134,48 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 			Fall[] faelle = patient.getFaelle();
 			for (final Fall fall : faelle) {
 				fallID = fall.getId();
-				// get Consultations per Fall
-				Konsultation[] kons = fall.getBehandlungen(false);
 				
-				for (final Konsultation konsultation : kons) {
-					
-					// if Konsultation has a Mandator and Fall
-					if(konsultation.isValid() == true){
-						behID = konsultation.getId();
-						
-						// get Mandator of the consultation
-						Mandant mand = konsultation.getMandant();
+				// get every mandator that worked on the Fall and add them to the kons2 list
+				Konsultation[] kons = fall.getBehandlungen(false);
+				List<Konsultation> kons2 = new ArrayList<Konsultation>();
+				for (Konsultation konsultation : kons) {
 
-						// checks if is Mandator (istMandant = 1)
-						if (mand.isValid() == true) {
-							mandant = mand.getKuerzel();
+					String mand1ID = konsultation.getMandant().getId();
+					check = false;
+
+					// create Iterator to go through kons2
+					Iterator<Konsultation> itr = kons2.iterator();
+					while(itr.hasNext()){
+						Konsultation k = itr.next();
+						String mand2ID = k.getMandant().getId();
+						// set check true if mandator already exists in kons2 list.
+						if (mand1ID.equals(mand2ID)) {
+							check = true;
 						}
-						
-						//
-						Fall f1 = konsultation.getFall();
-						
-						//
-
-						// fill the rows with content
-						final Comparable<?>[] row =
-							{
-								mandant, fallID, behID, patname, patvname, gender, birthday, street,
-								plz, city, "Fax", mail
-							};
-						
-						// add the row to the list
-						content.add(row);
+					}
+					
+					// Add consultation to kons2 List if mandator does not exist yet.
+					if (check == false) {
+						kons2.add(konsultation);
 					}
 				}
+				// get the unique mandator of each entry in kons2 list and add them to the dataset.
+				Iterator<Konsultation> itr2 = kons2.iterator();
+				while (itr2.hasNext()) {
+					Konsultation k = itr2.next();
+					mandant = k.getMandant().getName();
+
+				// fill the rows with content
+				final Comparable<?>[] row =
+					{
+						mandant, fallID, behID, patname, patvname, gender, birthday, street, plz,
+						city, "Fax", mail
+					};
+				
+				// add the row to the list
+				content.add(row);
+				}
+				//
 			}
 		}
 		
@@ -172,7 +186,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 		monitor.done();
 		return Status.OK_STATUS;
 	}
-	
+
 	/**
 	 * @return True if statistic should be created for current mandator only, false else.
 	 */
