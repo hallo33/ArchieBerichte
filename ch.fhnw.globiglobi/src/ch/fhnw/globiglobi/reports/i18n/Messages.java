@@ -42,6 +42,7 @@ public final class Messages extends NLS {
 	public static String PATIENTPERMAN_HEADING_PHONE2;
 	public static String PATIENTPERMAN_HEADING_FAX;
 	public static String PATIENTPERMAN_HEADING_MAIL;
+	public static String PATIENTPERMAN_HEADING_FALL;
 	
 	// Medics Per Sale
 	public static String MEDICSPERSALE_TITLE;
