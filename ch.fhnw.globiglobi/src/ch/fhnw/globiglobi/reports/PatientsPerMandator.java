@@ -19,6 +19,7 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
+import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.data.Anschrift;
 import ch.elexis.data.Fall;
 import ch.elexis.data.Konsultation;
@@ -104,7 +105,10 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 		
 		// Create Queries
 		final Query<Patient> patientQuery = new Query<Patient>(Patient.class);
-		
+// if (this.currentMandatorOnly) {
+// behandlungQuery.add("MandantID", "=", CoreHub.getId());
+// }
+
 		// Execute Queries
 		final List<Patient> pat = patientQuery.execute();
 
@@ -122,13 +126,15 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 			String gender = patient.getGeschlecht();
 			String birthday = patient.getGeburtsdatum();
 			String mail = patient.getMailAddress();
-			String strasse = patient.getPostAnschrift(false);
 
 			// get the Address
 			Anschrift anschrift = patient.getAnschrift();
 			String street = anschrift.getStrasse();
 			String plz = anschrift.getPlz();
 			String city = anschrift.getOrt();
+			
+			// get phone numbers
+			String contact = patient.getPostAnschriftPhoneFaxEmail(true, true);
 
 			
 			// get Faelle
@@ -141,35 +147,45 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 				List<Konsultation> kons2 = new ArrayList<Konsultation>();
 				for (Konsultation konsultation : kons) {
 
-					String mand1ID = konsultation.getMandant().getId();
 					check = false;
-
-					// create Iterator to go through kons2
-					Iterator<Konsultation> itr = kons2.iterator();
-					while(itr.hasNext()){
-						Konsultation k = itr.next();
-						String mand2ID = k.getMandant().getId();
-						// set check true if mandator already exists in kons2 list.
-						if (mand1ID.equals(mand2ID)) {
-							check = true;
+					String mand1ID = konsultation.getMandant().getId();
+					
+					if (this.currentMandatorOnly) {
+						if (mand1ID.equals(CoreHub.actMandant.getId())) {
+							// mandant = konsultation.getMandant().getId();
+							kons2.add(konsultation);
+							break;
 						}
 					}
-					
-					// Add consultation to kons2 List if mandator does not exist yet.
-					if (check == false) {
-						kons2.add(konsultation);
+
+					else {
+
+						Iterator<Konsultation> itr = kons2.iterator();
+						while (itr.hasNext()) {
+							Konsultation k = itr.next();
+							String mand2ID = k.getMandant().getId();
+							// set check true if mandator already exists in kons2 list.
+							if (mand1ID.equals(mand2ID)) {
+								check = true;
+							}
+						}
+						
+						// Add consultation to kons2 List if mandator does not exist yet.
+						if (check == false) {
+							kons2.add(konsultation);
+						}
 					}
 				}
 				// get the unique mandator of each entry in kons2 list and add them to the dataset.
 				Iterator<Konsultation> itr2 = kons2.iterator();
 				while (itr2.hasNext()) {
-					Konsultation k = itr2.next();
-					mandant = k.getMandant().getName();
+					Konsultation k2 = itr2.next();
+					mandant = k2.getMandant().getName();
 
 				// fill the rows with content
 				final Comparable<?>[] row =
 					{
-							mandant, patname, patvname, gender, birthday, strasse, plz,
+							mandant, patname, patvname, gender, birthday, street, plz,
  city,
 							"phone1", "phone2", "Fax", mail, fallID
 					};
