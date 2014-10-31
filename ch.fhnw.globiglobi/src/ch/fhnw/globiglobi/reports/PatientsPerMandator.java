@@ -193,7 +193,6 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 				// add the row to the list
 				content.add(row);
 				}
-				//
 			}
 		}
 		
