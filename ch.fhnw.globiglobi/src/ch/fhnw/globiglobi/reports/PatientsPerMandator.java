@@ -11,7 +11,9 @@
  *******************************************************************************/
 package ch.fhnw.globiglobi.reports;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -20,7 +22,6 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
 import ch.elexis.core.data.activator.CoreHub;
-import ch.elexis.data.Anschrift;
 import ch.elexis.data.Fall;
 import ch.elexis.data.Konsultation;
 import ch.elexis.data.Patient;
@@ -61,7 +62,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	/**
 	 * Date format for data that comes from the database.
 	 */
-	// private static final String DATE_DB_FORMAT = "yyyyMMdd";
+	private static final String DATE_DB_FORMAT = "yyyyMMdd";
 	
 	public PatientsPerMandator(){
 		super(Messages.PATIENTPERMAN_TITLE);
@@ -100,99 +101,97 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	 */
 	@Override
 	protected IStatus createContent(IProgressMonitor monitor) {
+		
+		final SimpleDateFormat databaseFormat = new SimpleDateFormat(DATE_DB_FORMAT);
+
 		// initialize list
 		final List<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(13);
+		final HashMap<String, Konsultation> consList = new HashMap<String, Konsultation>();
 		
 		// Create Queries
-		final Query<Patient> patientQuery = new Query<Patient>(Patient.class);
-// if (this.currentMandatorOnly) {
-// behandlungQuery.add("MandantID", "=", CoreHub.getId());
-// }
+		final Query<Konsultation> behandlungQuery = new Query<Konsultation>(Konsultation.class);
+		final Query<Fall> fallQuery = new Query<Fall>(Fall.class); 
+		// behandlungQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
+		// behandlungQuery.add("Datum", "<=", databaseFormat.format(this.getEndDate().getTime()));
+		if (this.currentMandatorOnly) {
+			behandlungQuery.add("MandantID", "=", CoreHub.actMandant.getId());
+		}
 
 		// Execute Queries
-		final List<Patient> pat = patientQuery.execute();
+		final List<Konsultation> cons = behandlungQuery.execute();
+		final List<Fall> faelle = fallQuery.execute();
 
-		for (final Patient patient : pat) {
+		// get the filtered consultations and put it in the consList
+		for (final Konsultation kons : cons) {
 			// check for cancelation
 			if (monitor.isCanceled())
 				return Status.CANCEL_STATUS;
-
+			
+			consList.put(kons.getId(), kons);
+		}
+		
+		for (final Fall fall : faelle) {
+			if (monitor.isCanceled())
+				return Status.CANCEL_STATUS;
+			
 			// definition of the variables for the result
 			String mandant = "";
 			String fallID = "";
-			String behID = "";
+			
+			Patient patient = fall.getPatient();
 			String patname = patient.getName();
 			String patvname = patient.getVorname();
 			String gender = patient.getGeschlecht();
 			String birthday = patient.getGeburtsdatum();
 			String mail = patient.getMailAddress();
+			String street = "";
+			String plz = "";
+			String city = "";
 
-			// get the Address
-			Anschrift anschrift = patient.getAnschrift();
-			String street = anschrift.getStrasse();
-			String plz = anschrift.getPlz();
-			String city = anschrift.getOrt();
+			Konsultation[] consultations = fall.getBehandlungen(false);
 			
-			// get phone numbers
-			String contact = patient.getPostAnschriftPhoneFaxEmail(true, true);
+			// get every mandator that worked on the Fall and add them to the kons list
+			List<Konsultation> konsList = new ArrayList<Konsultation>();
+			for (final Konsultation konsultation : consultations){
 
-			
-			// get Faelle
-			Fall[] faelle = patient.getFaelle();
-			for (final Fall fall : faelle) {
-				fallID = fall.getId();
-				
-				// get every mandator that worked on the Fall and add them to the kons2 list
-				Konsultation[] kons = fall.getBehandlungen(false);
-				List<Konsultation> kons2 = new ArrayList<Konsultation>();
-				for (Konsultation konsultation : kons) {
-
+				// check if the selected consultation is in the consList
+				if(consList.containsKey(konsultation.getId())){
 					check = false;
-					String mand1ID = konsultation.getMandant().getId();
+					String mandantID = konsultation.getMandant().getId();
+					fallID = konsultation.getFall().getId();
 					
-					if (this.currentMandatorOnly) {
-						if (mand1ID.equals(CoreHub.actMandant.getId())) {
-							// mandant = konsultation.getMandant().getId();
-							kons2.add(konsultation);
-							break;
+					// iterating through kons to check if mandator has already been added to the
+					// list
+					Iterator<Konsultation> itr = konsList.iterator();
+					while (itr.hasNext()) {
+						Konsultation k = itr.next();
+						String mandID = k.getMandant().getId();
+						// set check true if mandator already exists in kons list.
+						if (mandantID.equals(mandID)) {
+							check = true;
 						}
 					}
-
-					else {
-
-						Iterator<Konsultation> itr = kons2.iterator();
-						while (itr.hasNext()) {
-							Konsultation k = itr.next();
-							String mand2ID = k.getMandant().getId();
-							// set check true if mandator already exists in kons2 list.
-							if (mand1ID.equals(mand2ID)) {
-								check = true;
-							}
-						}
-						
-						// Add consultation to kons2 List if mandator does not exist yet.
-						if (check == false) {
-							kons2.add(konsultation);
-						}
+					
+					// Add consultation to kons List if mandator does not exist yet.
+					if (check == false) {
+						konsList.add(konsultation);
 					}
 				}
-				// get the unique mandator of each entry in kons2 list and add them to the dataset.
-				Iterator<Konsultation> itr2 = kons2.iterator();
-				while (itr2.hasNext()) {
-					Konsultation k2 = itr2.next();
-					mandant = k2.getMandant().getName();
-
+			}
+				// get the unique mandator of each entry in kons list and add them to the dataset.
+			Iterator<Konsultation> itr2 = konsList.iterator();
+			while (itr2.hasNext()) {
+				Konsultation k2 = itr2.next();
+				mandant = k2.getMandant().getName();
 				// fill the rows with content
 				final Comparable<?>[] row =
 					{
-							mandant, patname, patvname, gender, birthday, street, plz,
- city,
-							"phone1", "phone2", "Fax", mail, fallID
+						mandant, patname, patvname, gender, birthday, street, plz, city, "phone1",
+						"phone2", "Fax", mail, fallID
 					};
-				
+					
 				// add the row to the list
 				content.add(row);
-				}
 			}
 		}
 		
