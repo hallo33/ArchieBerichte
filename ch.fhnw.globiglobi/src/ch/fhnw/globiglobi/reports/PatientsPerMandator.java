@@ -13,7 +13,6 @@ package ch.fhnw.globiglobi.reports;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -60,6 +59,12 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	 * Is used for selecting uniques mandators to a Fall
 	 */
 	private boolean check;
+	
+	/**
+	 * Initiate all the required variables
+	 */
+	private String fallID;
+	private Patient patient;
 	
 	/**
 	 * Date format for data that comes from the database.
@@ -136,35 +141,10 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 			if (monitor.isCanceled())
 				return Status.CANCEL_STATUS;
 			
-			// definition of the variables for the result
-			String mandant = "";
-			String fallID = "";
-			
-			Patient patient = fall.getPatient();
-			String patname = patient.getName();
-			String patvname = patient.getVorname();
-			String gender = patient.getGeschlecht();
-			String birthday = patient.getGeburtsdatum();
-			String mail = patient.getMailAddress();
-			String phone1 = patient.get("Telefon1");
-			String phone2 = patient.get("Telefon2");
-			String fax = patient.get("Fax");
+			patient = fall.getPatient();
 			
 			// get the patients address through the Anschrift Object
 			Anschrift patanschrift = patient.getAnschrift();
-			String street = patanschrift.getStrasse();
-			String plz = patanschrift.getPlz();
-			String city = patanschrift.getOrt();
-			String contact = patient.getPostAnschriftPhoneFaxEmail(true, true);
-			List<String> contactdetails = Arrays.asList(contact.split("\n"));
-
-// if (contactdetails.size() > 4) {
-// phone1 = contactdetails.get(4);
-// }
-// if (contactdetails.size() > 5) {
-// phone2 = contactdetails.get(5);
-// }
-
 
 			Konsultation[] consultations = fall.getBehandlungen(false);
 			
@@ -176,7 +156,6 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 				if(consList.containsKey(konsultation.getId())){
 					if (konsultation.getMandant().isValid()) {
 						check = false;
-						String mandantID = konsultation.getMandant().getId();
 						fallID = konsultation.getFall().getId();
 						
 						// iterating through kons to check if mandator has already been added to the
@@ -184,9 +163,8 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 						Iterator<Konsultation> itr = konsList.iterator();
 						while (itr.hasNext()) {
 							Konsultation k = itr.next();
-							String mandID = k.getMandant().getId();
 							// set check true if mandator already exists in kons list.
-							if (mandantID.equals(mandID)) {
+							if (konsultation.getMandant().getId().equals(k.getMandant().getId())) {
 								check = true;
 							}
 						}
@@ -202,12 +180,15 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 			Iterator<Konsultation> itr2 = konsList.iterator();
 			while (itr2.hasNext()) {
 				Konsultation k2 = itr2.next();
-				mandant = k2.getMandant().getKuerzel();
 				// fill the rows with content
 				final Comparable<?>[] row =
 					{
-						mandant, patname, patvname, gender, birthday, street, plz, city, phone1,
-						phone2, fax, mail, fallID
+						k2.getMandant().getKuerzel(), patient.getName(), patient.getVorname(),
+						patient.getGeschlecht(),
+						patient.getGeburtsdatum(), patanschrift.getStrasse(),
+						patanschrift.getPlz(), patanschrift.getOrt(), patient.get("Telefon1"),
+						patient.get("Telefon2"), patient.get("Fax"), patient.getMailAddress(),
+						fallID
 					};
 					
 				// add the row to the list
