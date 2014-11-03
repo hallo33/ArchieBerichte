@@ -11,6 +11,7 @@
  *******************************************************************************/
 package ch.fhnw.globiglobi.reports;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,8 +19,11 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
+import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.data.Artikel;
+import ch.elexis.data.Kontakt;
 import ch.elexis.data.Query;
+import ch.elexis.data.Verrechnet;
 import ch.fhnw.globiglobi.reports.i18n.Messages;
 import ch.unibe.iam.scg.archie.annotations.GetProperty;
 import ch.unibe.iam.scg.archie.annotations.SetProperty;
@@ -42,7 +46,18 @@ public class MedicsPerSale extends AbstractTimeSeries {
 	 * Shows only patients for active mandator if true, all patients in the system else.
 	 */
 	private boolean currentMandatorOnly;
-
+	public String mediname;
+	public String ean;
+	public String pharmacode;
+	public String producer;
+	public String quantity;
+	public String sale;
+	
+	/**
+	 * Date format for data that comes from the database.
+	 */
+	private static final String DATE_DB_FORMAT = "yyyyMMdd";
+	
 	public MedicsPerSale(){
 		super(Messages.MEDICSPERSALE_TITLE);
 	}
@@ -75,26 +90,49 @@ public class MedicsPerSale extends AbstractTimeSeries {
 	@Override
 	protected IStatus createContent(IProgressMonitor monitor){
 		// initialize list
+		final SimpleDateFormat databaseFormat = new SimpleDateFormat(DATE_DB_FORMAT);
 		final List<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(6);
 		
 		// Create Queries
 		final Query<Artikel> articleQuery = new Query<Artikel>(Artikel.class);
+		final Query<Kontakt> contactQuery = new Query<Kontakt>(Kontakt.class);
+		final Query<Verrechnet> billedQuery = new Query<Verrechnet>(Verrechnet.class);
+		articleQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
+		articleQuery.add("Datum", "<=", databaseFormat.format(this.getEndDate().getTime()));
+		if (this.currentMandatorOnly) {
+			articleQuery.add("MandantID", "=", CoreHub.actMandant.getId());
+		}
 		
 		// Execute Queries
 		final List<Artikel> art = articleQuery.execute();
+		final List<Kontakt> con = contactQuery.execute();
+		final List<Verrechnet> bil = billedQuery.execute();
 		
-		for (final Artikel article : art) {
+		// start the task
+		monitor.beginTask(Messages.CALCULATING, art.size() + con.size() + bil.size());
+		
+		monitor.subTask("Daten aus Artikel auslesen");
+		for (final Artikel article : articleQuery.execute()) {
+			mediname = article.getName();
+			ean = article.getEAN();
+			pharmacode = article.getPharmaCode();
+			
+			monitor.worked(1); // monitoring
+		}
+		
+		monitor.subTask("Daten aus Kontakt auslesen");
+		for (final Kontakt contact : contactQuery.execute()) {
+			
+			monitor.worked(1); // monitoring
+
+		}
+		
+		monitor.subTask("Daten ausgeben");
+		for (final Verrechnet billed : billedQuery.execute()) {
+
 			// check for cancelation
 			if (monitor.isCanceled())
 				return Status.CANCEL_STATUS;
-			
-			// definition of the variables for the result
-			String producer = "";
-			String mediname = article.getName();
-			String ean = article.getEAN();
-			String pharmacode = article.getPharmaCode();
-			String quantity = "";
-			String sale = "";
 			
 			// fill the rows with content
 			final Comparable<?>[] row = {
@@ -103,6 +141,9 @@ public class MedicsPerSale extends AbstractTimeSeries {
 			
 			// add the row to the list
 			content.add(row);
+			
+			monitor.worked(1); // monitoring
+
 		}
 		
 		// set content in the dataSet
@@ -111,8 +152,9 @@ public class MedicsPerSale extends AbstractTimeSeries {
 		// job finished successfully
 		monitor.done();
 		return Status.OK_STATUS;
-	}
 
+	}
+	
 	/**
 	 * @return True if statistic should be created for current mandator only, false else.
 	 */

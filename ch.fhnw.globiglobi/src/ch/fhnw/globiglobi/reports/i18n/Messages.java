@@ -27,6 +27,9 @@ public final class Messages extends NLS {
 	
 	private static final String BUNDLE_NAME = "ch.fhnw.globiglobi.reports.i18n.messages"; //$NON-NLS-1$
 	
+	// General
+	public static String CALCULATING;
+
 	// Patients Per Mandator
 	public static String PATIENTPERMAN_TITLE;
 	public static String PATIENTPERMAN_DESCRIPTION;
