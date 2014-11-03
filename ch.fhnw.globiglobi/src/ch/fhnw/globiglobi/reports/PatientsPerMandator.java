@@ -13,6 +13,7 @@ package ch.fhnw.globiglobi.reports;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -22,6 +23,7 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
 import ch.elexis.core.data.activator.CoreHub;
+import ch.elexis.data.Anschrift;
 import ch.elexis.data.Fall;
 import ch.elexis.data.Konsultation;
 import ch.elexis.data.Patient;
@@ -52,7 +54,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	/**
 	 * Shows only patients of the specific mandator
 	 */
-	private String selectMandatorID;
+	private String selectedMandatorID;
 	
 	/**
 	 * Is used for selecting uniques mandators to a Fall
@@ -144,9 +146,25 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 			String gender = patient.getGeschlecht();
 			String birthday = patient.getGeburtsdatum();
 			String mail = patient.getMailAddress();
-			String street = "";
-			String plz = "";
-			String city = "";
+			String phone1 = patient.get("Telefon1");
+			String phone2 = patient.get("Telefon2");
+			String fax = patient.get("Fax");
+			
+			// get the patients address through the Anschrift Object
+			Anschrift patanschrift = patient.getAnschrift();
+			String street = patanschrift.getStrasse();
+			String plz = patanschrift.getPlz();
+			String city = patanschrift.getOrt();
+			String contact = patient.getPostAnschriftPhoneFaxEmail(true, true);
+			List<String> contactdetails = Arrays.asList(contact.split("\n"));
+
+// if (contactdetails.size() > 4) {
+// phone1 = contactdetails.get(4);
+// }
+// if (contactdetails.size() > 5) {
+// phone2 = contactdetails.get(5);
+// }
+
 
 			Konsultation[] consultations = fall.getBehandlungen(false);
 			
@@ -156,25 +174,27 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 
 				// check if the selected consultation is in the consList
 				if(consList.containsKey(konsultation.getId())){
-					check = false;
-					String mandantID = konsultation.getMandant().getId();
-					fallID = konsultation.getFall().getId();
-					
-					// iterating through kons to check if mandator has already been added to the
-					// list
-					Iterator<Konsultation> itr = konsList.iterator();
-					while (itr.hasNext()) {
-						Konsultation k = itr.next();
-						String mandID = k.getMandant().getId();
-						// set check true if mandator already exists in kons list.
-						if (mandantID.equals(mandID)) {
-							check = true;
+					if (konsultation.getMandant().isValid()) {
+						check = false;
+						String mandantID = konsultation.getMandant().getId();
+						fallID = konsultation.getFall().getId();
+						
+						// iterating through kons to check if mandator has already been added to the
+						// list
+						Iterator<Konsultation> itr = konsList.iterator();
+						while (itr.hasNext()) {
+							Konsultation k = itr.next();
+							String mandID = k.getMandant().getId();
+							// set check true if mandator already exists in kons list.
+							if (mandantID.equals(mandID)) {
+								check = true;
+							}
 						}
-					}
-					
-					// Add consultation to kons List if mandator does not exist yet.
-					if (check == false) {
-						konsList.add(konsultation);
+						
+						// Add consultation to kons List if mandator does not exist yet.
+						if (check == false) {
+							konsList.add(konsultation);
+						}
 					}
 				}
 			}
@@ -182,12 +202,12 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 			Iterator<Konsultation> itr2 = konsList.iterator();
 			while (itr2.hasNext()) {
 				Konsultation k2 = itr2.next();
-				mandant = k2.getMandant().getName();
+				mandant = k2.getMandant().getKuerzel();
 				// fill the rows with content
 				final Comparable<?>[] row =
 					{
-						mandant, patname, patvname, gender, birthday, street, plz, city, "phone1",
-						"phone2", "Fax", mail, fallID
+						mandant, patname, patvname, gender, birthday, street, plz, city, phone1,
+						phone2, fax, mail, fallID
 					};
 					
 				// add the row to the list
@@ -206,7 +226,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	/**
 	 * @return True if statistic should be created for current mandator only, false else.
 	 */
-	@GetProperty(name = "Active Mandator Only", index = 1, widgetType = WidgetTypes.BUTTON_CHECKBOX, description = "Compute statistics only for the current mandator. If unchecked, the statistic will be computed for all mandators.")
+	@GetProperty(name = "Active Mandator Only", index = 2, widgetType = WidgetTypes.BUTTON_CHECKBOX, description = "Compute statistics only for the current mandator. If unchecked, the statistic will be computed for all mandators.")
 	public boolean getCurrentMandatorOnly(){
 		return this.currentMandatorOnly;
 	}
@@ -218,4 +238,24 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	public void setCurrentMandatorOnly(final boolean currentMandatorOnly){
 		this.currentMandatorOnly = currentMandatorOnly;
 	}
+	
+// /**
+// * @return Value of the combo item set.
+// */
+// @GetProperty(name = "Combo Test", index = 10, widgetType = WidgetTypes.COMBO, description =
+// "Testing combo boxes.", items = {
+// "One", "Two", "Three"
+// })
+// public String getComboValue(){
+// return this.selectedMandatorID;
+// }
+//
+// /**
+// * @param Sets
+// * the combo value.
+// */
+// @SetProperty(name = "Combo Test")
+// public void setComboValue(final String mandID){
+// this.selectedMandatorID = mandID;
+// }
 }
