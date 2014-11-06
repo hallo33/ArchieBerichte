@@ -13,6 +13,11 @@
             class="ch.fhnw.globiglobi.reports.MedicsPerSale"
             name="Medics Per Sale">
       </DataProvider>
+      <DataProvider
+            category="ch.fhnw.globiglobi.reports.ProviderCategory"
+            class="ch.fhnw.globiglobi.reports.CurrentStock"
+            name="Current Stock">
+      </DataProvider>
       <category
             id="ch.fhnw.globiglobi.reports.ProviderCategory"
             name="FHNW Globiglobi">

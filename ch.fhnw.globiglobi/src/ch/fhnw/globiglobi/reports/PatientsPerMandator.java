@@ -28,6 +28,7 @@ import ch.elexis.data.Konsultation;
 import ch.elexis.data.Patient;
 import ch.elexis.data.Query;
 import ch.fhnw.globiglobi.reports.i18n.Messages;
+import ch.fhnw.globiglobi.widgets.SelectMandator;
 import ch.unibe.iam.scg.archie.annotations.GetProperty;
 import ch.unibe.iam.scg.archie.annotations.SetProperty;
 import ch.unibe.iam.scg.archie.model.AbstractTimeSeries;
@@ -73,6 +74,8 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	
 	public PatientsPerMandator(){
 		super(Messages.PATIENTPERMAN_TITLE);
+		
+		this.selectedMandatorID = SelectMandator.DEFAULT_SELECTED;
 	}
 	
 	/**
@@ -117,7 +120,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 		
 		// Create Queries
 		final Query<Konsultation> behandlungQuery = new Query<Konsultation>(Konsultation.class);
-		final Query<Fall> fallQuery = new Query<Fall>(Fall.class); 
+		final Query<Patient> patQuery = new Query<Patient>(Patient.class);
 		// behandlungQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
 		// behandlungQuery.add("Datum", "<=", databaseFormat.format(this.getEndDate().getTime()));
 		if (this.currentMandatorOnly) {
@@ -126,7 +129,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 
 		// Execute Queries
 		final List<Konsultation> cons = behandlungQuery.execute();
-		final List<Fall> faelle = fallQuery.execute();
+		final List<Patient> patients = patQuery.execute();
 
 		// get the filtered consultations and put it in the consList
 		for (final Konsultation kons : cons) {
@@ -137,62 +140,69 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 			consList.put(kons.getId(), kons);
 		}
 		
-		for (final Fall fall : faelle) {
+		for (final Patient pat : patients) {
 			if (monitor.isCanceled())
 				return Status.CANCEL_STATUS;
 			
-			patient = fall.getPatient();
-			
-			// get the patients address through the Anschrift Object
-			Anschrift patanschrift = patient.getAnschrift();
-
-			Konsultation[] consultations = fall.getBehandlungen(false);
-			
-			// get every mandator that worked on the Fall and add them to the kons list
 			List<Konsultation> konsList = new ArrayList<Konsultation>();
-			for (final Konsultation konsultation : consultations){
 
-				// check if the selected consultation is in the consList
-				if(consList.containsKey(konsultation.getId())){
-					if (konsultation.getMandant().isValid()) {
-						check = false;
-						fallID = konsultation.getFall().getId();
-						
-						// iterating through kons to check if mandator has already been added to the
-						// list
-						Iterator<Konsultation> itr = konsList.iterator();
-						while (itr.hasNext()) {
-							Konsultation k = itr.next();
-							// set check true if mandator already exists in kons list.
-							if (konsultation.getMandant().getId().equals(k.getMandant().getId())) {
-								check = true;
+			Fall[] faelle = pat.getFaelle();
+			for (final Fall fall : faelle) {
+				patient = fall.getPatient();
+				
+				// get the patients address through the Anschrift Object
+				Anschrift patanschrift = patient.getAnschrift();
+				
+				Konsultation[] consultations = fall.getBehandlungen(false);
+				
+				// get every mandator that worked on the Fall and add them to the kons list
+				
+				for (final Konsultation konsultation : consultations) {
+					
+					// check if the selected consultation is in the consList
+					if (consList.containsKey(konsultation.getId())) {
+						if (konsultation.getMandant().isValid()) {
+							check = false;
+							fallID = konsultation.getFall().getId();
+							
+							// iterating through kons to check if mandator has already been added to
+// the
+							// list
+							Iterator<Konsultation> itr = konsList.iterator();
+							while (itr.hasNext()) {
+								Konsultation k = itr.next();
+								// set check true if mandator already exists in kons list.
+								if (konsultation.getMandant().getId()
+									.equals(k.getMandant().getId())) {
+									check = true;
+								}
 							}
-						}
-						
-						// Add consultation to kons List if mandator does not exist yet.
-						if (check == false) {
-							konsList.add(konsultation);
+							
+							// Add consultation to kons List if mandator does not exist yet.
+							if (check == false) {
+								konsList.add(konsultation);
+							}
 						}
 					}
 				}
-			}
 				// get the unique mandator of each entry in kons list and add them to the dataset.
-			Iterator<Konsultation> itr2 = konsList.iterator();
-			while (itr2.hasNext()) {
-				Konsultation k2 = itr2.next();
-				// fill the rows with content
-				final Comparable<?>[] row =
-					{
-						k2.getMandant().getKuerzel(), patient.getName(), patient.getVorname(),
-						patient.getGeschlecht(),
-						patient.getGeburtsdatum(), patanschrift.getStrasse(),
-						patanschrift.getPlz(), patanschrift.getOrt(), patient.get("Telefon1"),
-						patient.get("Telefon2"), patient.get("Fax"), patient.getMailAddress(),
-						fallID
-					};
-					
-				// add the row to the list
-				content.add(row);
+				Iterator<Konsultation> itr2 = konsList.iterator();
+				while (itr2.hasNext()) {
+					Konsultation k2 = itr2.next();
+					// fill the rows with content
+					final Comparable<?>[] row =
+						{
+							k2.getMandant().getKuerzel(), patient.getName(), patient.getVorname(),
+							patient.getGeschlecht(), patient.getGeburtsdatum(),
+							patanschrift.getStrasse(), patanschrift.getPlz(),
+							patanschrift.getOrt(), patient.get("Telefon1"),
+							patient.get("Telefon2"), patient.get("Fax"), patient.getMailAddress(),
+							fallID
+						};
+						
+					// add the row to the list
+					content.add(row);
+				}
 			}
 		}
 		
@@ -220,23 +230,20 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 		this.currentMandatorOnly = currentMandatorOnly;
 	}
 	
-// /**
-// * @return Value of the combo item set.
-// */
-// @GetProperty(name = "Combo Test", index = 10, widgetType = WidgetTypes.COMBO, description =
-// "Testing combo boxes.", items = {
-// "One", "Two", "Three"
-// })
-// public String getComboValue(){
-// return this.selectedMandatorID;
-// }
-//
-// /**
-// * @param Sets
-// * the combo value.
-// */
-// @SetProperty(name = "Combo Test")
-// public void setComboValue(final String mandID){
-// this.selectedMandatorID = mandID;
-// }
+	/**
+	 * @return Value of the combo item set.
+	 */
+	@GetProperty(name = "Select Mandator", index = 10, widgetType = WidgetTypes.VENDOR, description = "Select a Mandator", vendorClass = SelectMandator.class)
+	public String getSelectedMandator(){
+		return this.selectedMandatorID;
+	}
+	
+	/**
+	 * @param Sets
+	 *            the combo value.
+	 */
+	@SetProperty(name = "Select Mandator")
+	public void setSelectedMandator(final String mandID){
+		this.selectedMandatorID = mandID;
+	}
 }

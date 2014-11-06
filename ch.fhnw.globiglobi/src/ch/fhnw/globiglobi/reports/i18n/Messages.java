@@ -56,6 +56,19 @@ public final class Messages extends NLS {
 	public static String MEDICSPERSALE_HEADING_PHARMACODE;
 	public static String MEDICSPERSALE_HEADING_QUANTITY;
 	public static String MEDICSPERSALE_HEADING_SALE;
+	
+	// Current Stock
+	public static String CURRENTSTOCK_TITLE;
+	public static String CURRENTSTOCK_DESCRIPTION;
+	public static String CURRENTSTOCK_HEADING_ARTICLE;
+	public static String CURRENTSTOCK_HEADING_EAN;
+	public static String CURRENTSTOCK_HEADING_PHARMACODE;
+	public static String CURRENTSTOCK_HEADING_ISTBEST;
+	public static String CURRENTSTOCK_HEADING_MINDBEST;
+	public static String CURRENTSTOCK_HEADING_MAXBEST;
+	public static String CURRENTSTOCK_HEADING_BESTELLUNGEN;
+	public static String CURRENTSTOCK_HEADING_LIEFERANT;
+
 	static {
 		// Load message values from bundle file.
 		NLS.initializeMessages(BUNDLE_NAME, Messages.class);
