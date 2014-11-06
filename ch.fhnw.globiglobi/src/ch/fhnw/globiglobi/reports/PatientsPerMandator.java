@@ -231,7 +231,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	}
 	
 	/**
-	 * @return Value of the combo item set.
+	 * @return Gives back the selected Mandator Kuerzel.
 	 */
 	@GetProperty(name = "Select Mandator", index = 10, widgetType = WidgetTypes.VENDOR, description = "Select a Mandator", vendorClass = SelectMandator.class)
 	public String getSelectedMandator(){
@@ -240,7 +240,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	
 	/**
 	 * @param Sets
-	 *            the combo value.
+	 *            the selected Mandator.
 	 */
 	@SetProperty(name = "Select Mandator")
 	public void setSelectedMandator(final String mandID){
