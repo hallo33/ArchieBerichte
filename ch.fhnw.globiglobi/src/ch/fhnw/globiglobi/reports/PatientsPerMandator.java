@@ -65,7 +65,6 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	 * Initiate all the required variables
 	 */
 	private String fallID;
-	private Patient patient;
 	
 	/**
 	 * Date format for data that comes from the database.
@@ -116,7 +115,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 
 		// initialize list
 		final List<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(13);
-		final HashMap<String, Konsultation> consList = new HashMap<String, Konsultation>();
+		final HashMap<String, Konsultation> allCons = new HashMap<String, Konsultation>();
 		
 		// Create Queries
 		final Query<Konsultation> behandlungQuery = new Query<Konsultation>(Konsultation.class);
@@ -136,70 +135,76 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 			// check for cancelation
 			if (monitor.isCanceled())
 				return Status.CANCEL_STATUS;
-			
-			consList.put(kons.getId(), kons);
+
+				// fill the consList with all the consultations resulting from the query
+				allCons.put(kons.getId(), kons);
 		}
 		
-		for (final Patient pat : patients) {
+		for (final Patient patient : patients) {
 			if (monitor.isCanceled())
 				return Status.CANCEL_STATUS;
 			
-			List<Konsultation> konsList = new ArrayList<Konsultation>();
-
-			Fall[] faelle = pat.getFaelle();
-			for (final Fall fall : faelle) {
-				patient = fall.getPatient();
+			if (patient.isValid()) {
+				// initiating the list with the mandators per patient
+				List<Konsultation> konsList = new ArrayList<Konsultation>();
 				
 				// get the patients address through the Anschrift Object
 				Anschrift patanschrift = patient.getAnschrift();
-				
-				Konsultation[] consultations = fall.getBehandlungen(false);
-				
-				// get every mandator that worked on the Fall and add them to the kons list
-				
-				for (final Konsultation konsultation : consultations) {
-					
-					// check if the selected consultation is in the consList
-					if (consList.containsKey(konsultation.getId())) {
-						if (konsultation.getMandant().isValid()) {
-							check = false;
-							fallID = konsultation.getFall().getId();
+
+				Fall[] faelle = patient.getFaelle();
+				for (final Fall fall : faelle) {
+				// if(fall.isValid()){
+						
+						Konsultation[] consultations = fall.getBehandlungen(false);
+						
+						// get every mandator that worked on the Fall and add them to the kons list
+						
+						for (final Konsultation konsultation : consultations) {
 							
-							// iterating through kons to check if mandator has already been added to
-// the
-							// list
-							Iterator<Konsultation> itr = konsList.iterator();
-							while (itr.hasNext()) {
-								Konsultation k = itr.next();
-								// set check true if mandator already exists in kons list.
-								if (konsultation.getMandant().getId()
-									.equals(k.getMandant().getId())) {
-									check = true;
+							// check if the selected consultation is in the consList
+							if (allCons.containsKey(konsultation.getId())) {
+								if (konsultation.getMandant().isValid()) {
+									check = false;
+									// for test uses
+									fallID = konsultation.getFall().getId();
+									
+									// iterating through kons to check if mandator has already been
+									// added to the list
+									Iterator<Konsultation> itr = konsList.iterator();
+									while (itr.hasNext()) {
+										Konsultation k = itr.next();
+										// set check true if mandator already exists in kons list.
+										if (konsultation.getMandant().getId()
+											.equals(k.getMandant().getId())) {
+											check = true;
+										}
+									}
+									
+									// Add consultation to kons List if mandator does not exist yet.
+									if (check == false) {
+										konsList.add(konsultation);
+									}
 								}
 							}
-							
-							// Add consultation to kons List if mandator does not exist yet.
-							if (check == false) {
-								konsList.add(konsultation);
-							}
 						}
-					}
+				// }
 				}
-				// get the unique mandator of each entry in kons list and add them to the dataset.
+				// get the unique mandator of each entry in kons list and add them to the
+				// dataset.
 				Iterator<Konsultation> itr2 = konsList.iterator();
 				while (itr2.hasNext()) {
 					Konsultation k2 = itr2.next();
 					// fill the rows with content
 					final Comparable<?>[] row =
 						{
-							k2.getMandant().getKuerzel(), patient.getName(), patient.getVorname(),
+							k2.getMandant().getId(), patient.getName(), patient.getVorname(),
 							patient.getGeschlecht(), patient.getGeburtsdatum(),
 							patanschrift.getStrasse(), patanschrift.getPlz(),
 							patanschrift.getOrt(), patient.get("Telefon1"),
 							patient.get("Telefon2"), patient.get("Fax"), patient.getMailAddress(),
 							fallID
 						};
-						
+					
 					// add the row to the list
 					content.add(row);
 				}
