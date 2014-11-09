@@ -13,6 +13,8 @@ package ch.fhnw.globiglobi.reports;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -48,8 +50,8 @@ public class MedicsPerSale extends AbstractTimeSeries {
 	public String ean;
 	public String pharmacode;
 	public String producer;
-	public int quantity;
-	public double sale;
+	public String quantity;
+	public String sale;
 	
 	/**
 	 * Date format for data that comes from the database.
@@ -102,31 +104,30 @@ public class MedicsPerSale extends AbstractTimeSeries {
 		}
 		
 		// Execute Queries
-		final List<Artikel> art = articleQuery.execute();
-		// final List<Kontakt> con = contactQuery.execute();
-		// final List<Verrechnet> bil = billedQuery.execute();
+		final List<Artikel> art =
+			(List<Artikel>) articleQuery.queryExpression(
+				"SELECT name FROM ARTIKEL WHERE name is not null", new LinkedList<Artikel>());
+// final List<Artikel> art2 =
+// (List<Artikel>) articleQuery.queryExpression(
+// "SELECT EAN FROM ARTIKEL WHERE EAN is not null", new LinkedList<Artikel>());
+		Iterator it = art.iterator();
 		
-
-		
-		for (final Artikel article : art) {
-			mediname = article.getName();
-
+		while (it.hasNext()) {
+			mediname = it.toString();
 		}
-		
-			// check for cancelation
-			if (monitor.isCanceled())
-				return Status.CANCEL_STATUS;
-			
-			// fill the rows with content
-			final Comparable<?>[] row = {
-			"", mediname, "", "", "", ""
-			};
-			
-			// add the row to the list
-			content.add(row);
-			
-		
 
+		// check for cancelation
+		if (monitor.isCanceled())
+			return Status.CANCEL_STATUS;
+		
+		// fill the rows with content
+		final Comparable<?>[] row = {
+			"", mediname, "", "", "", ""
+		};
+		
+		// add the row to the list
+		content.add(row);
+		
 		// set content in the dataSet
 		this.dataSet.setContent(content);
 		
