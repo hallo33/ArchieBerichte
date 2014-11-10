@@ -11,6 +11,7 @@
  *******************************************************************************/
 package ch.fhnw.globiglobi.reports;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,33 +19,148 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
+import ch.elexis.core.data.activator.CoreHub;
+import ch.elexis.data.Artikel;
+import ch.elexis.data.Query;
 import ch.fhnw.globiglobi.reports.i18n.Messages;
+import ch.fhnw.globiglobi.widgets.SelectMandator;
+import ch.unibe.iam.scg.archie.annotations.GetProperty;
+import ch.unibe.iam.scg.archie.annotations.SetProperty;
 import ch.unibe.iam.scg.archie.model.AbstractTimeSeries;
+import ch.unibe.iam.scg.archie.ui.widgets.WidgetTypes;
 
+/**
+ * <p>
+ * Provides statistics about the sold medics ordered by the sales. Resulting dataset contains
+ * information about the medics and the solds.
+ * </p>
+ * 
+ * 
+ * @author Lukas Eisenhut
+ * @author Stefan Waldenmaier
+ */
 public class MedicsPerSale extends AbstractTimeSeries {
 	
-	public MedicsPerSale(String name){
+	/**
+	 * Shows only patients for active mandator if true, all patients in the system else.
+	 */
+	private boolean currentMandatorOnly;
+	
+	/**
+	 * Shows only patients of the specific mandator
+	 */
+	private String selectedMandatorID;
+	
+	/**
+	 * All the variables needed for the view of the data.
+	 */
+	public String mediname;
+	public String ean;
+	public String pharmacode;
+	public String producer;
+	public String quantity;
+	public String sale;
+	
+	/**
+	 * Date format for data that comes from the database.
+	 */
+	private static final String DATE_DB_FORMAT = "yyyyMMdd";
+	
+	public MedicsPerSale(){
 		super(Messages.MEDICSPERSALE_TITLE);
+		this.selectedMandatorID = SelectMandator.DEFAULT_SELECTED;
 	}
 	
-	@Override
+	/**
+	 * Return an appropriate description
+	 */
 	public String getDescription(){
 		return Messages.MEDICSPERSALE_DESCRIPTION;
 	}
 	
+	/**
+	 * Create dataset headings in this method
+	 */
 	@Override
 	protected List<String> createHeadings(){
-		final ArrayList<String> headings = new ArrayList<String>(1);
-		headings.add("TEST");
+		final ArrayList<String> headings = new ArrayList<String>(6);
+		headings.add(Messages.MEDICSPERSALE_HEADING_PRODUCER);
+		headings.add(Messages.MEDICSPERSALE_HEADING_MEDINAME);
+		headings.add(Messages.MEDICSPERSALE_HEADING_EAN);
+		headings.add(Messages.MEDICSPERSALE_HEADING_PHARMACODE);
+		headings.add(Messages.MEDICSPERSALE_HEADING_QUANTITY);
+		headings.add(Messages.MEDICSPERSALE_HEADING_SALE);
 		return headings;
 	}
 	
+	/**
+	 * Compose the contents of a dataset here
+	 */
 	@Override
 	protected IStatus createContent(IProgressMonitor monitor){
 		
+		final SimpleDateFormat databaseFormat = new SimpleDateFormat(DATE_DB_FORMAT);
+		
+		// initialize list
+		final List<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(6);
+		
+		// Create Queries
+		final Query<Artikel> articleQuery = new Query<Artikel>(Artikel.class);
+		
+		// articleQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
+		// articleQuery.add("Datum", "<=", databaseFormat.format(this.getEndDate().getTime()));
+		
+		// check if checkbox current mandator only is on
+		if (this.currentMandatorOnly) {
+			articleQuery.add("MandantID", "=", CoreHub.actMandant.getId());
+		}
+		
+		// Execute Queries
+		final List<Artikel> art = articleQuery.execute();
+		
+		for (final Artikel article : art) {
+			// check for cancelation
+			if (monitor.isCanceled())
+				return Status.CANCEL_STATUS;
+			
+			// fill the articleList with all the article data resulting from the query
+			mediname = article.getName();
+		}
+		
+		// check for cancelation
+		if (monitor.isCanceled())
+			return Status.CANCEL_STATUS;
+		
+		// fill the rows with content
+		final Comparable<?>[] row = {
+			"", mediname, "", "", "", ""
+		};
+		
+		// add the row to the list
+		content.add(row);
+		
+		// set content in the dataSet
+		this.dataSet.setContent(content);
+
 		// job finished successfully
 		monitor.done();
 		return Status.OK_STATUS;
+		
 	}
 	
+	/**
+	 * @return True if statistic should be created for current mandator only, false else.
+	 */
+	@GetProperty(name = "Active Mandator Only", index = 1, widgetType = WidgetTypes.BUTTON_CHECKBOX, description = "Compute statistics only for the current mandator. If unchecked, the statistic will be computed for all mandators.")
+	public boolean getCurrentMandatorOnly(){
+		return this.currentMandatorOnly;
+	}
+	
+	/**
+	 * @param currentMandatorOnly
+	 */
+	@SetProperty(name = "Active Mandator Only")
+	public void setCurrentMandatorOnly(final boolean currentMandatorOnly){
+		this.currentMandatorOnly = currentMandatorOnly;
+	}
 }
