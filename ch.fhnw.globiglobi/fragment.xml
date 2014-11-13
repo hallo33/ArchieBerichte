@@ -22,6 +22,10 @@
             id="ch.fhnw.globiglobi.reports.ProviderCategory"
             name="FHNW Globiglobi">
       </category>
+      <DataProvider
+            class="ch.fhnw.globiglobi.AbstractDataProvider:1"
+            name="name">
+      </DataProvider>
    </extension>
 
 </fragment>

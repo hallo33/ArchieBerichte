@@ -20,10 +20,14 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
 import ch.elexis.core.data.activator.CoreHub;
-import ch.elexis.data.Artikel;
+import ch.elexis.data.Konsultation;
+import ch.elexis.data.Mandant;
+import ch.elexis.data.Patient;
 import ch.elexis.data.Query;
+import ch.elexis.data.Verrechnet;
 import ch.fhnw.globiglobi.reports.i18n.Messages;
 import ch.fhnw.globiglobi.widgets.SelectMandator;
+import ch.rgw.tools.TimeTool;
 import ch.unibe.iam.scg.archie.annotations.GetProperty;
 import ch.unibe.iam.scg.archie.annotations.SetProperty;
 import ch.unibe.iam.scg.archie.model.AbstractTimeSeries;
@@ -51,15 +55,6 @@ public class MedicsPerSale extends AbstractTimeSeries {
 	 */
 	private String selectedMandatorID;
 	
-	/**
-	 * All the variables needed for the view of the data.
-	 */
-	public String mediname;
-	public String ean;
-	public String pharmacode;
-	public String producer;
-	public String quantity;
-	public String sale;
 	
 	/**
 	 * Date format for data that comes from the database.
@@ -98,46 +93,58 @@ public class MedicsPerSale extends AbstractTimeSeries {
 	 */
 	@Override
 	protected IStatus createContent(IProgressMonitor monitor){
+		monitor.beginTask("Medikamente nach Umsatz", IProgressMonitor.UNKNOWN);
+		Query consQuery = new Query(Konsultation.class);
+		TimeTool ttStart = new TimeTool(this.getStartDate().getTimeInMillis());
+		TimeTool ttEnd = new TimeTool(this.getEndDate().getTimeInMillis());
+		consQuery.add(Konsultation.FLD_DATE, Query.GREATER_OR_EQUAL,
+			ttStart.toString(TimeTool.DATE_COMPACT));
+		consQuery.add(Konsultation.FLD_DATE, Query.LESS_OR_EQUAL,
+			ttEnd.toString(TimeTool.DATE_COMPACT));
 		
 		final SimpleDateFormat databaseFormat = new SimpleDateFormat(DATE_DB_FORMAT);
-		
-		// initialize list
-		final List<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(6);
-		
-		// Create Queries
-		final Query<Artikel> articleQuery = new Query<Artikel>(Artikel.class);
 		
 		// articleQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
 		// articleQuery.add("Datum", "<=", databaseFormat.format(this.getEndDate().getTime()));
 		
 		// check if checkbox current mandator only is on
 		if (this.currentMandatorOnly) {
-			articleQuery.add("MandantID", "=", CoreHub.actMandant.getId());
+			consQuery.add("MandantID", "=", CoreHub.actMandant.getId());
 		}
 		
+		monitor.subTask("Lade Konsultationen");
 		// Execute Queries
-		final List<Artikel> art = articleQuery.execute();
+		List<Konsultation> consultations = consQuery.execute();
+		// initialize list
+		final ArrayList<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(6);
 		
-		for (final Artikel article : art) {
-			// check for cancelation
-			if (monitor.isCanceled())
-				return Status.CANCEL_STATUS;
+		for (Konsultation cons : consultations) {
 			
-			// fill the articleList with all the article data resulting from the query
-			mediname = article.getName();
+			if (cons.getFall() != null) {
+				Patient patient = cons.getFall().getPatient();
+				Mandant mandant = cons.getMandant();
+				List<Verrechnet> activities = cons.getLeistungen();
+				if (mandant != null && patient != null && activities != null
+					&& !activities.isEmpty()) {
+					for (Verrechnet verrechnet : activities) {
+						Comparable<?>[] row = new Comparable<?>[this.dataSet.getHeadings().size()];
+						int index = 0;
+						
+						row[index++] = mandant.getMandantLabel();
+						row[index++] = cons.getDatum();
+						row[index++] = patient.get(Patient.FLD_PATID);
+						row[index++] = verrechnet.getText();
+						row[index++] = verrechnet.getNettoPreis().toString();
+						
+						content.add(row);
+						
+						if (monitor.isCanceled()) {
+							return Status.CANCEL_STATUS;
+						}
+					}
+				}
+			}
 		}
-		
-		// check for cancelation
-		if (monitor.isCanceled())
-			return Status.CANCEL_STATUS;
-		
-		// fill the rows with content
-		final Comparable<?>[] row = {
-			"", mediname, "", "", "", ""
-		};
-		
-		// add the row to the list
-		content.add(row);
 		
 		// set content in the dataSet
 		this.dataSet.setContent(content);
