@@ -20,11 +20,8 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 
 import ch.elexis.core.data.activator.CoreHub;
-import ch.elexis.data.Konsultation;
-import ch.elexis.data.Mandant;
-import ch.elexis.data.Patient;
+import ch.elexis.data.Artikel;
 import ch.elexis.data.Query;
-import ch.elexis.data.Verrechnet;
 import ch.fhnw.globiglobi.reports.i18n.Messages;
 import ch.fhnw.globiglobi.widgets.SelectMandator;
 import ch.rgw.tools.TimeTool;
@@ -54,7 +51,6 @@ public class MedicsPerSale extends AbstractTimeSeries {
 	 * Shows only patients of the specific mandator
 	 */
 	private String selectedMandatorID;
-	
 	
 	/**
 	 * Date format for data that comes from the database.
@@ -94,13 +90,12 @@ public class MedicsPerSale extends AbstractTimeSeries {
 	@Override
 	protected IStatus createContent(IProgressMonitor monitor){
 		monitor.beginTask("Medikamente nach Umsatz", IProgressMonitor.UNKNOWN);
-		Query consQuery = new Query(Konsultation.class);
+		Query artQuery = new Query(Artikel.class);
 		TimeTool ttStart = new TimeTool(this.getStartDate().getTimeInMillis());
 		TimeTool ttEnd = new TimeTool(this.getEndDate().getTimeInMillis());
-		consQuery.add(Konsultation.FLD_DATE, Query.GREATER_OR_EQUAL,
+		artQuery.add(Artikel.FLD_DATE, Query.GREATER_OR_EQUAL,
 			ttStart.toString(TimeTool.DATE_COMPACT));
-		consQuery.add(Konsultation.FLD_DATE, Query.LESS_OR_EQUAL,
-			ttEnd.toString(TimeTool.DATE_COMPACT));
+		artQuery.add(Artikel.FLD_DATE, Query.LESS_OR_EQUAL, ttEnd.toString(TimeTool.DATE_COMPACT));
 		
 		final SimpleDateFormat databaseFormat = new SimpleDateFormat(DATE_DB_FORMAT);
 		
@@ -109,38 +104,35 @@ public class MedicsPerSale extends AbstractTimeSeries {
 		
 		// check if checkbox current mandator only is on
 		if (this.currentMandatorOnly) {
-			consQuery.add("MandantID", "=", CoreHub.actMandant.getId());
+			artQuery.add("MandantID", "=", CoreHub.actMandant.getId());
 		}
 		
 		monitor.subTask("Lade Konsultationen");
 		// Execute Queries
-		List<Konsultation> consultations = consQuery.execute();
+		List<Artikel> articles = artQuery.execute();
 		// initialize list
 		final ArrayList<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(6);
 		
-		for (Konsultation cons : consultations) {
+		for (Artikel art : articles) {
 			
-			if (cons.getFall() != null) {
-				Patient patient = cons.getFall().getPatient();
-				Mandant mandant = cons.getMandant();
-				List<Verrechnet> activities = cons.getLeistungen();
-				if (mandant != null && patient != null && activities != null
-					&& !activities.isEmpty()) {
-					for (Verrechnet verrechnet : activities) {
+			while (art.getName() != null) {
+				// List<Verrechnet> activities = cons.getLeistungen();
+				if (art.getEAN() != null && art.getName() != null && art.getPharmaCode() != null) {
+					// for (Verrechnet verrechnet : activities) {
 						Comparable<?>[] row = new Comparable<?>[this.dataSet.getHeadings().size()];
 						int index = 0;
 						
-						row[index++] = mandant.getMandantLabel();
-						row[index++] = cons.getDatum();
-						row[index++] = patient.get(Patient.FLD_PATID);
-						row[index++] = verrechnet.getText();
-						row[index++] = verrechnet.getNettoPreis().toString();
-						
+					row[index++] = "";
+					row[index++] = "";
+					row[index++] = art.getEAN();
+					row[index++] = "";
+					row[index++] = "";
+					row[index++] = "";
 						content.add(row);
 						
 						if (monitor.isCanceled()) {
 							return Status.CANCEL_STATUS;
-						}
+						// }
 					}
 				}
 			}
@@ -150,6 +142,7 @@ public class MedicsPerSale extends AbstractTimeSeries {
 		this.dataSet.setContent(content);
 
 		// job finished successfully
+
 		monitor.done();
 		return Status.OK_STATUS;
 		
