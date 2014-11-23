@@ -18,6 +18,11 @@
             class="ch.fhnw.globiglobi.reports.CurrentStock"
             name="Current Stock">
       </DataProvider>
+      <DataProvider
+            category="ch.fhnw.globiglobi.reports.ProviderCategory"
+            class="ch.fhnw.globiglobi.reports.SalePerMandator"
+            name="Sales Per Mandator">
+      </DataProvider>
       <category
             id="ch.fhnw.globiglobi.reports.ProviderCategory"
             name="FHNW Globiglobi">
