@@ -66,6 +66,14 @@ public final class Messages extends NLS {
 	public static String CURRENTSTOCK_HEADING_MAXBEST;
 	public static String CURRENTSTOCK_HEADING_BESTELLUNGEN;
 	public static String CURRENTSTOCK_HEADING_LIEFERANT;
+	
+	// SalePerMandator
+	public static String SALEPERMANDATOR_TITLE;
+	public static String SALEPERMANDATOR_DESCRIPTION;
+	public static String SALEPERMANDATOR_HEADING_MANDATOR;
+	public static String SALEPERMANDATOR_HEADING_DETECTEDSERVICE;
+	public static String SALEPERMANDATOR_HEADING_CHARGEDSERVICE;
+	public static String SALEPERMANDATOR_HEADING_PAYEDSERVICE;
 
 	static {
 		// Load message values from bundle file.
