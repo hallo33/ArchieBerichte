@@ -31,8 +31,8 @@ import ch.unibe.iam.scg.archie.ui.widgets.WidgetTypes;
 
 /**
  * <p>
- * Provides statistics about the sold medics ordered by the sales. Resulting dataset contains
- * information about the medics and the solds.
+ * Provides statistics about the mandators services ordered by the Mandators name. Resulting dataset
+ * contains information about mandators services.
  * </p>
  * 
  * 
@@ -120,25 +120,23 @@ public class SalePerMandator extends AbstractTimeSeries {
 			// Verrechnet v = itr.next();
 			if (cons.getMandant() != null) {
 				String mandant = cons.getMandant().getName();
+				
+				Comparable<?>[] row = new Comparable<?>[this.dataSet.getHeadings().size()];
+				int index = 0;
 
-							Comparable<?>[] row =
-								new Comparable<?>[this.dataSet.getHeadings().size()];
-							int index = 0;
-							
 				row[index++] = mandant;
-							row[index++] = "";
-							row[index++] = "";
-							row[index++] = "";
-							row[index++] = "";
 				row[index++] = "";
-							content.add(row);
-							
-							if (monitor.isCanceled()) {
-								return Status.CANCEL_STATUS;
-							}
-						}
+				row[index++] = "";
+				row[index++] = "";
+				row[index++] = "";
+				row[index++] = "";
+				content.add(row);
+				
+				if (monitor.isCanceled()) {
+					return Status.CANCEL_STATUS;
+				}
+			}
 		}
-
 		
 		// set content in the dataSet
 		this.dataSet.setContent(content);
