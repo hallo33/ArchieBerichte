@@ -12,6 +12,7 @@
 package ch.fhnw.globiglobi.reports;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -21,6 +22,7 @@ import org.eclipse.core.runtime.Status;
 import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.data.Konsultation;
 import ch.elexis.data.Query;
+import ch.elexis.data.Verrechnet;
 import ch.fhnw.globiglobi.reports.i18n.Messages;
 import ch.fhnw.globiglobi.widgets.SelectMandator;
 import ch.rgw.tools.TimeTool;
@@ -110,34 +112,52 @@ public class SalePerMandator extends AbstractTimeSeries {
 		// Execute Queries
 		List<Konsultation> consultations = consQuery.execute();
 		// initialize list
-		final ArrayList<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(6);
+		final ArrayList<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(4);
 		
 		for (Konsultation cons : consultations) {
 
-			// List<Verrechnet> Verrechenbar = cons.getLeistungen();
-			// Iterator<Verrechnet> itr = Verrechenbar.iterator();
-			// while (itr.hasNext()) {
-			// Verrechnet v = itr.next();
 			if (cons.getMandant() != null) {
 				String mandant = cons.getMandant().getName();
-				
-				Comparable<?>[] row = new Comparable<?>[this.dataSet.getHeadings().size()];
-				int index = 0;
 
-				row[index++] = mandant;
-				row[index++] = "";
-				row[index++] = "";
-				row[index++] = "";
-				row[index++] = "";
-				row[index++] = "";
-				content.add(row);
+				String bezahlt = "";
 				
-				if (monitor.isCanceled()) {
-					return Status.CANCEL_STATUS;
+				// List<Zahlung> Zahlungen = cons.getRechnung().getZahlungen();
+				// Iterator<Zahlung> itr2 = Zahlungen.iterator();
+				// while (itr2.hasNext()) {
+				// Zahlung z = itr2.next();
+				// bezahlt = z.getId();
+				
+				List<Verrechnet> Verrechenbar = cons.getLeistungen();
+				Iterator<Verrechnet> itr = Verrechenbar.iterator();
+				while (itr.hasNext()) {
+					Verrechnet v = itr.next();
+					String erfasst = v.getText();
+					String verrechnet = "";
+					if (cons.getRechnung() != null) {
+						verrechnet = "verrechnet";
+					} else
+						verrechnet = "nicht verrechnet";
+					
+					// Collections.sort(consultations);
+					
+					Comparable<?>[] row = new Comparable<?>[this.dataSet.getHeadings().size()];
+					int index = 0;
+					
+					row[index++] = mandant;
+					row[index++] = erfasst;
+					row[index++] = verrechnet;
+					row[index++] = bezahlt;
+					
+					content.add(row);
+					
+					if (monitor.isCanceled()) {
+						return Status.CANCEL_STATUS;
+					}
 				}
 			}
 		}
-		
+		// }
+
 		// set content in the dataSet
 		this.dataSet.setContent(content);
 		
