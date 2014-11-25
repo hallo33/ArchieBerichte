@@ -76,11 +76,12 @@ public class SalePerMandator extends AbstractTimeSeries {
 
 	@Override
 	protected List<String> createHeadings(){
-		final ArrayList<String> headings = new ArrayList<String>(4);
+		final ArrayList<String> headings = new ArrayList<String>(5);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_MANDATOR);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_DETECTEDSERVICE);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_CHARGEDSERVICE);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_PAYEDSERVICE);
+		headings.add(Messages.SALEPERMANDATOR_HEADING_SALE);
 		return headings;
 	}
 	
@@ -112,20 +113,21 @@ public class SalePerMandator extends AbstractTimeSeries {
 		// Execute Queries
 		List<Konsultation> consultations = consQuery.execute();
 		// initialize list
-		final ArrayList<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(4);
+		final ArrayList<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(5);
 		
 		for (Konsultation cons : consultations) {
-
+			
 			if (cons.getMandant() != null) {
 				String mandant = cons.getMandant().getName();
-
-				String bezahlt = "";
 				
-				// List<Zahlung> Zahlungen = cons.getRechnung().getZahlungen();
-				// Iterator<Zahlung> itr2 = Zahlungen.iterator();
-				// while (itr2.hasNext()) {
-				// Zahlung z = itr2.next();
-				// bezahlt = z.getId();
+				String bezahlt = "";
+
+				// if (cons.getRechnung().getOffenerBetrag() != null) {
+				// bezahlt = "offen";
+				// }
+				
+				// else
+				// bezahlt = "bezahlt";
 				
 				List<Verrechnet> Verrechenbar = cons.getLeistungen();
 				Iterator<Verrechnet> itr = Verrechenbar.iterator();
@@ -135,8 +137,22 @@ public class SalePerMandator extends AbstractTimeSeries {
 					String verrechnet = "";
 					if (cons.getRechnung() != null) {
 						verrechnet = "verrechnet";
-					} else
+					}
+					
+					else {
 						verrechnet = "nicht verrechnet";
+					}
+					double geld = (v.getNettoPreis().getAmount()) - (v.getKosten().getAmount());
+					double geldRund = Math.round(100.0 * geld) / 100.0;
+					String umsatz = String.valueOf(geldRund);
+					List<Double> SummeUmsatz = new ArrayList<Double>();
+					SummeUmsatz.add(geldRund);
+					Iterator<Double> itr3 = SummeUmsatz.iterator();
+					while (itr3.hasNext()) {
+						double d = 0;
+						d += itr3.next();
+						String totalerUmsatz = String.valueOf(d);
+					
 					
 					// Collections.sort(consultations);
 					
@@ -146,7 +162,8 @@ public class SalePerMandator extends AbstractTimeSeries {
 					row[index++] = mandant;
 					row[index++] = erfasst;
 					row[index++] = verrechnet;
-					row[index++] = bezahlt;
+						row[index++] = totalerUmsatz;
+					row[index++] = umsatz;
 					
 					content.add(row);
 					
@@ -156,7 +173,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 				}
 			}
 		}
-		// }
+		}
 
 		// set content in the dataSet
 		this.dataSet.setContent(content);
@@ -168,6 +185,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 
 	}
 	
+
 	/**
 	 * @return True if statistic should be created for current mandator only, false else.
 	 */
@@ -182,5 +200,22 @@ public class SalePerMandator extends AbstractTimeSeries {
 	@SetProperty(name = "Active Mandator Only")
 	public void setCurrentMandatorOnly(final boolean currentMandatorOnly){
 		this.currentMandatorOnly = currentMandatorOnly;
+	}
+	
+	/**
+	 * @return Gives back the selected Mandator Kuerzel.
+	 */
+	@GetProperty(name = "Select Mandator", index = 10, widgetType = WidgetTypes.VENDOR, description = "Select a Mandator", vendorClass = SelectMandator.class)
+	public String getSelectedMandator(){
+		return this.selectedMandatorID;
+	}
+	
+	/**
+	 * @param Sets
+	 *            the selected Mandator.
+	 */
+	@SetProperty(name = "Select Mandator")
+	public void setSelectedMandator(final String mandID){
+		this.selectedMandatorID = mandID;
 	}
 }

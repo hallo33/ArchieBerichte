@@ -74,6 +74,7 @@ public final class Messages extends NLS {
 	public static String SALEPERMANDATOR_HEADING_DETECTEDSERVICE;
 	public static String SALEPERMANDATOR_HEADING_CHARGEDSERVICE;
 	public static String SALEPERMANDATOR_HEADING_PAYEDSERVICE;
+	public static String SALEPERMANDATOR_HEADING_SALE;
 
 	static {
 		// Load message values from bundle file.
