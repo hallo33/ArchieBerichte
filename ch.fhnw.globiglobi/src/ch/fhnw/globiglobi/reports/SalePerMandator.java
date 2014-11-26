@@ -73,15 +73,16 @@ public class SalePerMandator extends AbstractTimeSeries {
 	/**
 	 * Create dataset headings in this method
 	 */
-
+	
 	@Override
 	protected List<String> createHeadings(){
-		final ArrayList<String> headings = new ArrayList<String>(5);
+		final ArrayList<String> headings = new ArrayList<String>(6);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_MANDATOR);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_DETECTEDSERVICE);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_CHARGEDSERVICE);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_PAYEDSERVICE);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_SALE);
+		headings.add(Messages.SALEPERMANDATOR_HEADING_TOTALSALE);
 		return headings;
 	}
 	
@@ -113,46 +114,63 @@ public class SalePerMandator extends AbstractTimeSeries {
 		// Execute Queries
 		List<Konsultation> consultations = consQuery.execute();
 		// initialize list
-		final ArrayList<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(5);
+		final ArrayList<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(6);
 		
 		for (Konsultation cons : consultations) {
 			
+			String erfasst = "";
+			String verrechnet = "";
+			String bezahlt = "";
+			String umsatz = "";
+			String totalerUmsatz = "";
+
 			if (cons.getMandant() != null) {
 				String mandant = cons.getMandant().getName();
 				
-				String bezahlt = "";
-
-				// if (cons.getRechnung().getOffenerBetrag() != null) {
-				// bezahlt = "offen";
-				// }
-				
-				// else
-				// bezahlt = "bezahlt";
-				
 				List<Verrechnet> Verrechenbar = cons.getLeistungen();
 				Iterator<Verrechnet> itr = Verrechenbar.iterator();
+
 				while (itr.hasNext()) {
 					Verrechnet v = itr.next();
-					String erfasst = v.getText();
-					String verrechnet = "";
+					erfasst = v.getText();
+					
 					if (cons.getRechnung() != null) {
 						verrechnet = "verrechnet";
+						
+						if (verrechnet.equals("verrechnet")
+							&& cons.getRechnung().getOffenerBetrag().getAmountAsString()
+								.equals("0.00")) {
+							bezahlt = "bezahlt";
+							
+							double geld = (v.getNettoPreis().getAmount());
+							double geldRund = Math.round(100.0 * geld) / 100.0;
+							umsatz = String.valueOf(geldRund);
+
+							List<Double> SummeUmsatz = new ArrayList<Double>();
+							SummeUmsatz.add(geldRund);
+							Iterator<Double> itr3 = SummeUmsatz.iterator();
+							double d = 0;
+							while (itr3.hasNext()) {
+								d += itr3.next().doubleValue();
+							}
+							totalerUmsatz = String.valueOf(d);
+						}
+						
+						else if (verrechnet.equals("verrechnet")
+							&& !cons.getRechnung().getOffenerBetrag().getAmountAsString()
+								.equals("0.00")) {
+							bezahlt = "offen";
+							umsatz = "0";
+							totalerUmsatz = "0";
+						}
 					}
-					
+
 					else {
 						verrechnet = "nicht verrechnet";
+						bezahlt = "offen";
+						umsatz = "0";
+						totalerUmsatz = "0";
 					}
-					double geld = (v.getNettoPreis().getAmount()) - (v.getKosten().getAmount());
-					double geldRund = Math.round(100.0 * geld) / 100.0;
-					String umsatz = String.valueOf(geldRund);
-					List<Double> SummeUmsatz = new ArrayList<Double>();
-					SummeUmsatz.add(geldRund);
-					Iterator<Double> itr3 = SummeUmsatz.iterator();
-					while (itr3.hasNext()) {
-						double d = 0;
-						d += itr3.next();
-						String totalerUmsatz = String.valueOf(d);
-					
 					
 					// Collections.sort(consultations);
 					
@@ -162,8 +180,9 @@ public class SalePerMandator extends AbstractTimeSeries {
 					row[index++] = mandant;
 					row[index++] = erfasst;
 					row[index++] = verrechnet;
-						row[index++] = totalerUmsatz;
+					row[index++] = bezahlt;
 					row[index++] = umsatz;
+					row[index++] = totalerUmsatz;
 					
 					content.add(row);
 					
@@ -173,19 +192,16 @@ public class SalePerMandator extends AbstractTimeSeries {
 				}
 			}
 		}
-		}
-
+		
 		// set content in the dataSet
 		this.dataSet.setContent(content);
 		
 		// job finished successfully
-		
 		monitor.done();
 		return Status.OK_STATUS;
-
+		
 	}
 	
-
 	/**
 	 * @return True if statistic should be created for current mandator only, false else.
 	 */
