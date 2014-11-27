@@ -102,6 +102,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 		consQuery.add(Konsultation.FLD_DATE, Query.LESS_OR_EQUAL,
 			ttEnd.toString(TimeTool.DATE_COMPACT));
 		
+
 		summe = 0;
 		// final SimpleDateFormat databaseFormat = new SimpleDateFormat(DATE_DB_FORMAT);
 		
