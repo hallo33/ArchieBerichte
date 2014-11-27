@@ -47,6 +47,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 	 * Shows only patients for active mandator if true, all patients in the system else.
 	 */
 	private boolean currentMandatorOnly;
+	private double summe = 0;
 	
 	/**
 	 * Shows only patients of the specific mandator
@@ -76,8 +77,9 @@ public class SalePerMandator extends AbstractTimeSeries {
 	
 	@Override
 	protected List<String> createHeadings(){
-		final ArrayList<String> headings = new ArrayList<String>(6);
+		final ArrayList<String> headings = new ArrayList<String>(7);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_MANDATOR);
+		headings.add(Messages.SALEPERMANDATOR_HEADING_CONSID);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_DETECTEDSERVICE);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_CHARGEDSERVICE);
 		headings.add(Messages.SALEPERMANDATOR_HEADING_PAYEDSERVICE);
@@ -100,6 +102,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 		consQuery.add(Konsultation.FLD_DATE, Query.LESS_OR_EQUAL,
 			ttEnd.toString(TimeTool.DATE_COMPACT));
 		
+		summe = 0;
 		// final SimpleDateFormat databaseFormat = new SimpleDateFormat(DATE_DB_FORMAT);
 		
 		// consQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
@@ -114,7 +117,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 		// Execute Queries
 		List<Konsultation> consultations = consQuery.execute();
 		// initialize list
-		final ArrayList<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(6);
+		final ArrayList<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(7);
 		
 		for (Konsultation cons : consultations) {
 			
@@ -122,44 +125,55 @@ public class SalePerMandator extends AbstractTimeSeries {
 			String verrechnet = "";
 			String bezahlt = "";
 			String umsatz = "";
-			String totalerUmsatz = "";
+			String totalerUmsatz= "";
+			String consID = "";
 
+			if (!cons.delete()) {
 			if (cons.getMandant() != null) {
 				String mandant = cons.getMandant().getName();
+				consID = cons.getId();
 				
 				List<Verrechnet> Verrechenbar = cons.getLeistungen();
 				Iterator<Verrechnet> itr = Verrechenbar.iterator();
 
 				while (itr.hasNext()) {
 					Verrechnet v = itr.next();
-					erfasst = v.getText();
+						if (erfasst.equals("")) {
+							erfasst = v.getText();
+						} else {
+						erfasst += "\n" + v.getText();
+						}
 					
 					if (cons.getRechnung() != null) {
-						verrechnet = "verrechnet";
+							verrechnet = "verrechnet";
 						
-						if (verrechnet.equals("verrechnet")
-							&& cons.getRechnung().getOffenerBetrag().getAmountAsString()
+							if (cons.getRechnung().getOffenerBetrag().getAmountAsString()
 								.equals("0.00")) {
-							bezahlt = "bezahlt";
+								bezahlt = "bezahlt";
 							
-							double geld = (v.getNettoPreis().getAmount());
-							double geldRund = Math.round(100.0 * geld) / 100.0;
-							umsatz = String.valueOf(geldRund);
+								double geld = (v.getNettoPreis().getAmount() * v.getZahl());
+								double geldRund = Math.round(100.0 * geld) / 100.0;
+								
+								if (umsatz.equals("")) {
+									umsatz = String.valueOf(geldRund);
+								} else {
+									umsatz += "\n" + String.valueOf(geldRund);
+								}
 
-							List<Double> SummeUmsatz = new ArrayList<Double>();
-							SummeUmsatz.add(geldRund);
-							Iterator<Double> itr3 = SummeUmsatz.iterator();
-							double d = 0;
-							while (itr3.hasNext()) {
-								d += itr3.next().doubleValue();
-							}
-							totalerUmsatz = String.valueOf(d);
+							summe += geldRund;
+//							List<Double> SummeUmsatz = new ArrayList<Double>();
+//							SummeUmsatz.add(geldRund);
+//							Iterator<Double> itr3 = SummeUmsatz.iterator();
+//							double d = 0;
+//							while (itr3.hasNext()) {
+//								d += itr3.next().doubleValue();
+//							}
+								totalerUmsatz = String.valueOf(Math.round(100.0 * summe) / 100.0);
 						}
 						
-						else if (verrechnet.equals("verrechnet")
-							&& !cons.getRechnung().getOffenerBetrag().getAmountAsString()
+							else if (!cons.getRechnung().getOffenerBetrag().getAmountAsString()
 								.equals("0.00")) {
-							bezahlt = "offen";
+								bezahlt = "offen";
 							umsatz = "0";
 							totalerUmsatz = "0";
 						}
@@ -171,6 +185,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 						umsatz = "0";
 						totalerUmsatz = "0";
 					}
+					}
 					
 					// Collections.sort(consultations);
 					
@@ -178,6 +193,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 					int index = 0;
 					
 					row[index++] = mandant;
+					row[index++] = consID;
 					row[index++] = erfasst;
 					row[index++] = verrechnet;
 					row[index++] = bezahlt;
@@ -189,8 +205,8 @@ public class SalePerMandator extends AbstractTimeSeries {
 					if (monitor.isCanceled()) {
 						return Status.CANCEL_STATUS;
 					}
-				}
 			}
+		}
 		}
 		
 		// set content in the dataSet
