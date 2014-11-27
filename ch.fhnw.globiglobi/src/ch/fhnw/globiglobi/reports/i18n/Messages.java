@@ -47,28 +47,6 @@ public final class Messages extends NLS {
 	public static String PATIENTPERMAN_HEADING_MAIL;
 	public static String PATIENTPERMAN_HEADING_FALL;
 	
-	// Medics Per Sale
-	public static String MEDICSPERSALE_TITLE;
-	public static String MEDICSPERSALE_DESCRIPTION;
-	public static String MEDICSPERSALE_HEADING_PRODUCER;
-	public static String MEDICSPERSALE_HEADING_MEDINAME;
-	public static String MEDICSPERSALE_HEADING_EAN;
-	public static String MEDICSPERSALE_HEADING_PHARMACODE;
-	public static String MEDICSPERSALE_HEADING_QUANTITY;
-	public static String MEDICSPERSALE_HEADING_SALE;
-	
-	// Current Stock
-	public static String CURRENTSTOCK_TITLE;
-	public static String CURRENTSTOCK_DESCRIPTION;
-	public static String CURRENTSTOCK_HEADING_ARTICLE;
-	public static String CURRENTSTOCK_HEADING_EAN;
-	public static String CURRENTSTOCK_HEADING_PHARMACODE;
-	public static String CURRENTSTOCK_HEADING_ISTBEST;
-	public static String CURRENTSTOCK_HEADING_MINDBEST;
-	public static String CURRENTSTOCK_HEADING_MAXBEST;
-	public static String CURRENTSTOCK_HEADING_BESTELLUNGEN;
-	public static String CURRENTSTOCK_HEADING_LIEFERANT;
-	
 	// SalePerMandator
 	public static String SALEPERMANDATOR_TITLE;
 	public static String SALEPERMANDATOR_DESCRIPTION;
