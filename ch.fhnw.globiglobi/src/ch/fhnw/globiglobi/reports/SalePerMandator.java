@@ -11,6 +11,7 @@
  *******************************************************************************/
 package ch.fhnw.globiglobi.reports;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -25,7 +26,6 @@ import ch.elexis.data.Query;
 import ch.elexis.data.Verrechnet;
 import ch.fhnw.globiglobi.reports.i18n.Messages;
 import ch.fhnw.globiglobi.widgets.SelectMandator;
-import ch.rgw.tools.TimeTool;
 import ch.unibe.iam.scg.archie.annotations.GetProperty;
 import ch.unibe.iam.scg.archie.annotations.SetProperty;
 import ch.unibe.iam.scg.archie.model.AbstractTimeSeries;
@@ -57,7 +57,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 	/**
 	 * Date format for data that comes from the database.
 	 */
-	// private static final String DATE_DB_FORMAT = "yyyyMMdd";
+	private static final String DATE_DB_FORMAT = "yyyyMMdd";
 	
 	public SalePerMandator(){
 		super(Messages.SALEPERMANDATOR_TITLE);
@@ -95,19 +95,11 @@ public class SalePerMandator extends AbstractTimeSeries {
 	protected IStatus createContent(IProgressMonitor monitor){
 		monitor.beginTask("Umsätze pro Mandant", IProgressMonitor.UNKNOWN);
 		Query consQuery = new Query(Konsultation.class);
-		TimeTool ttStart = new TimeTool(this.getStartDate().getTimeInMillis());
-		TimeTool ttEnd = new TimeTool(this.getEndDate().getTimeInMillis());
-		consQuery.add(Konsultation.FLD_DATE, Query.GREATER_OR_EQUAL,
-			ttStart.toString(TimeTool.DATE_COMPACT));
-		consQuery.add(Konsultation.FLD_DATE, Query.LESS_OR_EQUAL,
-			ttEnd.toString(TimeTool.DATE_COMPACT));
 		
-
-		summe = 0;
-		// final SimpleDateFormat databaseFormat = new SimpleDateFormat(DATE_DB_FORMAT);
+		final SimpleDateFormat databaseFormat = new SimpleDateFormat(DATE_DB_FORMAT);
 		
-		// consQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
-		// consQuery.add("Datum", "<=", databaseFormat.format(this.getEndDate().getTime()));
+		consQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
+		consQuery.add("Datum", "<=", databaseFormat.format(this.getEndDate().getTime()));
 		
 		// check if checkbox current mandator only is on
 		if (this.currentMandatorOnly) {
@@ -120,38 +112,40 @@ public class SalePerMandator extends AbstractTimeSeries {
 		// initialize list
 		final ArrayList<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(7);
 		
+		summe = 0;
+
 		for (Konsultation cons : consultations) {
 			
 			String erfasst = "";
 			String verrechnet = "";
 			String bezahlt = "";
 			String umsatz = "";
-			String totalerUmsatz= "";
+			String totalerUmsatz = "";
 			String consID = "";
 
 			if (!cons.delete()) {
-			if (cons.getMandant() != null) {
-				String mandant = cons.getMandant().getName();
-				consID = cons.getId();
-				
-				List<Verrechnet> Verrechenbar = cons.getLeistungen();
-				Iterator<Verrechnet> itr = Verrechenbar.iterator();
-
-				while (itr.hasNext()) {
-					Verrechnet v = itr.next();
+				if (cons.getMandant() != null) {
+					String mandant = cons.getMandant().getName();
+					consID = cons.getId();
+					
+					List<Verrechnet> Verrechenbar = cons.getLeistungen();
+					Iterator<Verrechnet> itr = Verrechenbar.iterator();
+					
+					while (itr.hasNext()) {
+						Verrechnet v = itr.next();
 						if (erfasst.equals("")) {
 							erfasst = v.getText();
 						} else {
-						erfasst += "\n" + v.getText();
+							erfasst += "\n" + v.getText();
 						}
-					
-					if (cons.getRechnung() != null) {
-							verrechnet = "verrechnet";
 						
+						if (cons.getRechnung() != null) {
+							verrechnet = "verrechnet";
+
 							if (cons.getRechnung().getOffenerBetrag().getAmountAsString()
 								.equals("0.00")) {
 								bezahlt = "bezahlt";
-							
+
 								double geld = (v.getNettoPreis().getAmount() * v.getZahl());
 								double geldRund = Math.round(100.0 * geld) / 100.0;
 								
@@ -160,35 +154,27 @@ public class SalePerMandator extends AbstractTimeSeries {
 								} else {
 									umsatz += "\n" + String.valueOf(geldRund);
 								}
+								
+								summe += geldRund;
 
-							summe += geldRund;
-//							List<Double> SummeUmsatz = new ArrayList<Double>();
-//							SummeUmsatz.add(geldRund);
-//							Iterator<Double> itr3 = SummeUmsatz.iterator();
-//							double d = 0;
-//							while (itr3.hasNext()) {
-//								d += itr3.next().doubleValue();
-//							}
 								totalerUmsatz = String.valueOf(Math.round(100.0 * summe) / 100.0);
-						}
-						
+							}
+
 							else if (!cons.getRechnung().getOffenerBetrag().getAmountAsString()
 								.equals("0.00")) {
 								bezahlt = "offen";
+								umsatz = "0";
+								totalerUmsatz = "0";
+							}
+						}
+						
+						else {
+							verrechnet = "nicht verrechnet";
+							bezahlt = "offen";
 							umsatz = "0";
 							totalerUmsatz = "0";
 						}
 					}
-
-					else {
-						verrechnet = "nicht verrechnet";
-						bezahlt = "offen";
-						umsatz = "0";
-						totalerUmsatz = "0";
-					}
-					}
-					
-					// Collections.sort(consultations);
 					
 					Comparable<?>[] row = new Comparable<?>[this.dataSet.getHeadings().size()];
 					int index = 0;
@@ -206,8 +192,8 @@ public class SalePerMandator extends AbstractTimeSeries {
 					if (monitor.isCanceled()) {
 						return Status.CANCEL_STATUS;
 					}
+				}
 			}
-		}
 		}
 		
 		// set content in the dataSet
