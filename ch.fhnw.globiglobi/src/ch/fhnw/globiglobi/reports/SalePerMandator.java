@@ -44,13 +44,17 @@ import ch.unibe.iam.scg.archie.ui.widgets.WidgetTypes;
 public class SalePerMandator extends AbstractTimeSeries {
 	
 	/**
-	 * Shows only patients for active mandator if true, all patients in the system else.
+	 * Shows only services for active mandator if true, for all mandators else.
 	 */
 	private boolean currentMandatorOnly;
+	
+	/**
+	 * Initialize a double value.
+	 */
 	private double summe = 0;
 	
 	/**
-	 * Shows only patients of the specific mandator
+	 * Shows only services of the specific mandator
 	 */
 	private String selectedMandatorID;
 	
@@ -59,6 +63,9 @@ public class SalePerMandator extends AbstractTimeSeries {
 	 */
 	private static final String DATE_DB_FORMAT = "yyyyMMdd";
 	
+	/**
+	 * Defines the constructor for SalePerMandator.
+	 */
 	public SalePerMandator(){
 		super(Messages.SALEPERMANDATOR_TITLE);
 		this.selectedMandatorID = SelectMandator.DEFAULT_SELECTED;
@@ -96,8 +103,14 @@ public class SalePerMandator extends AbstractTimeSeries {
 		monitor.beginTask("Umsätze pro Mandant", IProgressMonitor.UNKNOWN);
 		Query consQuery = new Query(Konsultation.class);
 		
+		/**
+		 * Date format for data that comes from the database.
+		 */
 		final SimpleDateFormat databaseFormat = new SimpleDateFormat(DATE_DB_FORMAT);
 		
+		/**
+		 * Check for results of the Query in the selected date space.
+		 */
 		consQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
 		consQuery.add("Datum", "<=", databaseFormat.format(this.getEndDate().getTime()));
 		
@@ -107,30 +120,35 @@ public class SalePerMandator extends AbstractTimeSeries {
 		}
 		
 		monitor.subTask("Lade Konsultationen");
-		// Execute Queries
+		// Execute Query
 		List<Konsultation> consultations = consQuery.execute();
-		// initialize list
+		// initialize list for content
 		final ArrayList<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(7);
 		
 		summe = 0;
-
+		
+		// Eveything following is done for the consultations in the list consultations.
 		for (Konsultation cons : consultations) {
 			
+			// Initialize the Strings to create data for the content.
 			String erfasst = "";
 			String verrechnet = "";
 			String bezahlt = "";
 			String umsatz = "";
 			String totalerUmsatz = "";
 			String consID = "";
-
+			
+			// check if cosultation is not deleted.
 			if (!cons.delete()) {
+				// check if consultation has a mandator, get his name and the consultation's ID.
 				if (cons.getMandant() != null) {
 					String mandant = cons.getMandant().getName();
 					consID = cons.getId();
 					
+					// Create new list with Verrechnet in it from the Leistungen of a consultation.
 					List<Verrechnet> Verrechenbar = cons.getLeistungen();
 					Iterator<Verrechnet> itr = Verrechenbar.iterator();
-					
+					// Check if the List Verrechenabr has next with an iterator and get it's text.
 					while (itr.hasNext()) {
 						Verrechnet v = itr.next();
 						if (erfasst.equals("")) {
@@ -139,19 +157,24 @@ public class SalePerMandator extends AbstractTimeSeries {
 							erfasst += "\n" + v.getText();
 						}
 						
+						// check if a consultation has a bill.
 						if (cons.getRechnung() != null) {
 							verrechnet = "verrechnet";
-
+							
+							// check if the bill is payed allready.
 							if (cons.getRechnung().getOffenerBetrag().getAmountAsString()
 								.equals("0.00")) {
 								bezahlt = "bezahlt";
-
+								
+								// calculate the sale and the total sale of mandator's calculations.
 								double geld = (v.getNettoPreis().getAmount() * v.getZahl());
 								double geldRund = Math.round(100.0 * geld) / 100.0;
 								
 								if (umsatz.equals("")) {
 									umsatz = String.valueOf(geldRund);
-								} else {
+								}
+								
+								else {
 									umsatz += "\n" + String.valueOf(geldRund);
 								}
 								
@@ -159,7 +182,8 @@ public class SalePerMandator extends AbstractTimeSeries {
 
 								totalerUmsatz = String.valueOf(Math.round(100.0 * summe) / 100.0);
 							}
-
+							
+							// check if a bill has to be payed still.
 							else if (!cons.getRechnung().getOffenerBetrag().getAmountAsString()
 								.equals("0.00")) {
 								bezahlt = "offen";
@@ -167,7 +191,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 								totalerUmsatz = "0";
 							}
 						}
-						
+						// if a consultation has no bill.
 						else {
 							verrechnet = "nicht verrechnet";
 							bezahlt = "offen";
@@ -176,6 +200,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 						}
 					}
 					
+					// add all the date from the content list to the final table rows.
 					Comparable<?>[] row = new Comparable<?>[this.dataSet.getHeadings().size()];
 					int index = 0;
 					
@@ -189,6 +214,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 					
 					content.add(row);
 					
+					// check for cancelation.
 					if (monitor.isCanceled()) {
 						return Status.CANCEL_STATUS;
 					}
