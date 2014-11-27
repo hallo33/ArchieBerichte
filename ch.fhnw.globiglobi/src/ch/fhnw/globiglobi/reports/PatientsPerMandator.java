@@ -129,17 +129,25 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 		// Execute Queries
 		final List<Konsultation> cons = behandlungQuery.execute();
 		final List<Patient> patients = patQuery.execute();
+		
+		// Monitor the task
+		monitor.beginTask(Messages.CALCULATING, cons.size());
 
 		// get the filtered consultations and put it in the consList
+		monitor.subTask("Read Consultations");
 		for (final Konsultation kons : cons) {
 			// check for cancelation
 			if (monitor.isCanceled())
 				return Status.CANCEL_STATUS;
 
-				// fill the consList with all the consultations resulting from the query
-				allCons.put(kons.getId(), kons);
+			// fill the consList with all the consultations resulting from the query
+			allCons.put(kons.getId(), kons);
+			monitor.worked(1);
 		}
 		
+		monitor.beginTask(Messages.CALCULATING, patients.size());
+
+		monitor.subTask("Seeking Data");
 		for (final Patient patient : patients) {
 			if (monitor.isCanceled())
 				return Status.CANCEL_STATUS;
@@ -197,7 +205,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 					// fill the rows with content
 					final Comparable<?>[] row =
 						{
-							k2.getMandant().getId(), patient.getName(), patient.getVorname(),
+							k2.getMandant().getName(), patient.getName(), patient.getVorname(),
 							patient.getGeschlecht(), patient.getGeburtsdatum(),
 							patanschrift.getStrasse(), patanschrift.getPlz(),
 							patanschrift.getOrt(), patient.get("Telefon1"),
