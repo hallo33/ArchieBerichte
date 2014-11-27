@@ -71,7 +71,6 @@ public final class Messages extends NLS {
 	public static String SALEPERMANDATOR_TITLE;
 	public static String SALEPERMANDATOR_DESCRIPTION;
 	public static String SALEPERMANDATOR_HEADING_MANDATOR;
-	public static String SALEPERMANDATOR_HEADING_CONSID;
 	public static String SALEPERMANDATOR_HEADING_DETECTEDSERVICE;
 	public static String SALEPERMANDATOR_HEADING_CHARGEDSERVICE;
 	public static String SALEPERMANDATOR_HEADING_PAYEDSERVICE;
