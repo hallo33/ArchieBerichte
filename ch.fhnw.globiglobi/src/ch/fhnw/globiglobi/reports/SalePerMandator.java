@@ -22,6 +22,7 @@ import org.eclipse.core.runtime.Status;
 
 import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.data.Konsultation;
+import ch.elexis.data.Kontakt;
 import ch.elexis.data.Query;
 import ch.elexis.data.Verrechnet;
 import ch.fhnw.globiglobi.reports.i18n.Messages;
@@ -102,6 +103,7 @@ public class SalePerMandator extends AbstractTimeSeries {
 	protected IStatus createContent(IProgressMonitor monitor){
 		monitor.beginTask("Umsätze pro Mandant", IProgressMonitor.UNKNOWN);
 		Query consQuery = new Query(Konsultation.class);
+		final Query<Kontakt> mandQuery = new Query<Kontakt>(Kontakt.class);
 		
 		/**
 		 * Date format for data that comes from the database.
@@ -114,9 +116,15 @@ public class SalePerMandator extends AbstractTimeSeries {
 		consQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
 		consQuery.add("Datum", "<=", databaseFormat.format(this.getEndDate().getTime()));
 		
-		// check if checkbox current mandator only is on
-		if (this.currentMandatorOnly) {
-			consQuery.add("MandantID", "=", CoreHub.actMandant.getId());
+		// check if checkbox current mandator only is on or a mandator is selected
+		if (!this.selectedMandatorID.equals("All")) {
+			mandQuery.add("Bezeichnung3", "=", this.selectedMandatorID);
+			// List<Kontakt> mandatorIDselect = "";
+			consQuery.add("MandantID", "=", mandQuery.execute().get(0).getId());
+		} else {
+			if (this.currentMandatorOnly) {
+				consQuery.add("MandantID", "=", CoreHub.actMandant.getId());
+			}
 		}
 		
 		monitor.subTask("Lade Konsultationen");

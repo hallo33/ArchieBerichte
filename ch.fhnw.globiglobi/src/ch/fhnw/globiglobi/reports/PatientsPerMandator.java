@@ -25,6 +25,7 @@ import ch.elexis.core.data.activator.CoreHub;
 import ch.elexis.data.Anschrift;
 import ch.elexis.data.Fall;
 import ch.elexis.data.Konsultation;
+import ch.elexis.data.Kontakt;
 import ch.elexis.data.Patient;
 import ch.elexis.data.Query;
 import ch.fhnw.globiglobi.reports.i18n.Messages;
@@ -119,11 +120,20 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 		
 		// Create Queries
 		final Query<Konsultation> behandlungQuery = new Query<Konsultation>(Konsultation.class);
+		final Query<Kontakt> mandQuery = new Query<Kontakt>(Kontakt.class);
 		final Query<Patient> patQuery = new Query<Patient>(Patient.class);
 		// behandlungQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
 		// behandlungQuery.add("Datum", "<=", databaseFormat.format(this.getEndDate().getTime()));
-		if (this.currentMandatorOnly) {
-			behandlungQuery.add("MandantID", "=", CoreHub.actMandant.getId());
+
+		// check if checkbox current mandator only is on or a mandator is selected
+		if (!this.selectedMandatorID.equals("All")) {
+			mandQuery.add("Bezeichnung3", "=", this.selectedMandatorID);
+			// List<Kontakt> mandatorIDselect = "";
+			behandlungQuery.add("MandantID", "=", mandQuery.execute().get(0).getId());
+		} else {
+			if (this.currentMandatorOnly) {
+				behandlungQuery.add("MandantID", "=", CoreHub.actMandant.getId());
+			}
 		}
 
 		// Execute Queries
