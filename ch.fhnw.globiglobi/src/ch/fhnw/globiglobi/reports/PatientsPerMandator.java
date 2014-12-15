@@ -61,12 +61,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	 * Is used for selecting uniques mandators to a Fall
 	 */
 	private boolean check;
-	
-	/**
-	 * Initiate all the required variables
-	 */
-	private String fallID;
-	
+
 	/**
 	 * Date format for data that comes from the database.
 	 */
@@ -89,7 +84,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 	 * Create dataset headings in this method
 	 */
 	protected List<String> createHeadings(){
-		final ArrayList<String> headings = new ArrayList<String>(13);
+		final ArrayList<String> headings = new ArrayList<String>(12);
 		headings.add(Messages.PATIENTPERMAN_HEADING_STAMMARZT);
 		headings.add(Messages.PATIENTPERMAN_HEADING_PATNAME);
 		headings.add(Messages.PATIENTPERMAN_HEADING_PATPRENAME);
@@ -102,7 +97,6 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 		headings.add(Messages.PATIENTPERMAN_HEADING_PHONE2);
 		headings.add(Messages.PATIENTPERMAN_HEADING_FAX);
 		headings.add(Messages.PATIENTPERMAN_HEADING_MAIL);
-		headings.add(Messages.PATIENTPERMAN_HEADING_FALL);
 		return headings;
 	}
 	
@@ -115,20 +109,19 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 		final SimpleDateFormat databaseFormat = new SimpleDateFormat(DATE_DB_FORMAT);
 
 		// initialize list
-		final List<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(13);
+		final List<Comparable<?>[]> content = new ArrayList<Comparable<?>[]>(12);
 		final HashMap<String, Konsultation> allCons = new HashMap<String, Konsultation>();
 		
 		// Create Queries
 		final Query<Konsultation> behandlungQuery = new Query<Konsultation>(Konsultation.class);
 		final Query<Kontakt> mandQuery = new Query<Kontakt>(Kontakt.class);
 		final Query<Patient> patQuery = new Query<Patient>(Patient.class);
-		// behandlungQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
-		// behandlungQuery.add("Datum", "<=", databaseFormat.format(this.getEndDate().getTime()));
+		behandlungQuery.add("Datum", ">=", databaseFormat.format(this.getStartDate().getTime()));
+		behandlungQuery.add("Datum", "<=", databaseFormat.format(this.getEndDate().getTime()));
 
 		// check if checkbox current mandator only is on or a mandator is selected
 		if (!this.selectedMandatorID.equals("All")) {
 			mandQuery.add("Bezeichnung3", "=", this.selectedMandatorID);
-			// List<Kontakt> mandatorIDselect = "";
 			behandlungQuery.add("MandantID", "=", mandQuery.execute().get(0).getId());
 		} else {
 			if (this.currentMandatorOnly) {
@@ -139,23 +132,19 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 		// Execute Queries
 		final List<Konsultation> cons = behandlungQuery.execute();
 		final List<Patient> patients = patQuery.execute();
-		
-		// Monitor the task
-		monitor.beginTask(Messages.CALCULATING, cons.size());
 
 		// get the filtered consultations and put it in the consList
 		monitor.subTask("Read Consultations");
 		for (final Konsultation kons : cons) {
-			// check for cancelation
+			// check for cancellation
 			if (monitor.isCanceled())
 				return Status.CANCEL_STATUS;
 
 			// fill the consList with all the consultations resulting from the query
 			allCons.put(kons.getId(), kons);
-			monitor.worked(1);
 		}
 		
-		monitor.beginTask(Messages.CALCULATING, patients.size());
+		monitor.beginTask(Messages.CALCULATING, allCons.size());
 
 		monitor.subTask("Seeking Data");
 		for (final Patient patient : patients) {
@@ -171,47 +160,43 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 
 				Fall[] faelle = patient.getFaelle();
 				for (final Fall fall : faelle) {
-				// if(fall.isValid()){
+					// if(fall.isValid()){
+					
+					Konsultation[] consultations = fall.getBehandlungen(false);
+					
+					// get every mandator that worked on the Fall and add them to the kons list
+					
+					for (final Konsultation konsultation : consultations) {
 						
-						Konsultation[] consultations = fall.getBehandlungen(false);
-						
-						// get every mandator that worked on the Fall and add them to the kons list
-						
-						for (final Konsultation konsultation : consultations) {
-							
-							// check if the selected consultation is in the consList
-							if (allCons.containsKey(konsultation.getId())) {
-								if (konsultation.getMandant().isValid()) {
-									check = false;
-									// for test uses
-									fallID = konsultation.getFall().getId();
-									
-									// iterating through kons to check if mandator has already been
-									// added to the list
-									Iterator<Konsultation> itr = konsList.iterator();
-									while (itr.hasNext()) {
-										Konsultation k = itr.next();
-										// set check true if mandator already exists in kons list.
-										if (konsultation.getMandant().getId()
+						// check if the selected consultation is in the consList
+						if (allCons.containsKey(konsultation.getId())) {
+							if (konsultation.getMandant().isValid()) {
+								check = false;
+								
+								// iterating through kons to check if mandator has already been
+								// added to the list
+								Iterator<Konsultation> itr = konsList.iterator();
+								while (itr.hasNext()) {
+									Konsultation k = itr.next();
+									// set check true if mandator already exists in kons list.
+									if (konsultation.getMandant().getId()
 											.equals(k.getMandant().getId())) {
-											check = true;
-										}
-									}
-									
-									// Add consultation to kons List if mandator does not exist yet.
-									if (check == false) {
-										konsList.add(konsultation);
+										check = true;
 									}
 								}
+								
+								// Add consultation to kons List if mandator does not exist yet.
+								if (check == false) {
+									konsList.add(konsultation);
+								}
 							}
+							monitor.worked(1); // monitor the Task
 						}
-				// }
+					}
 				}
 				// get the unique mandator of each entry in kons list and add them to the
 				// dataset.
-				Iterator<Konsultation> itr2 = konsList.iterator();
-				while (itr2.hasNext()) {
-					Konsultation k2 = itr2.next();
+				for (Konsultation k2 : konsList) {
 					// fill the rows with content
 					final Comparable<?>[] row =
 						{
@@ -219,8 +204,7 @@ public class PatientsPerMandator extends AbstractTimeSeries {
 							patient.getGeschlecht(), patient.getGeburtsdatum(),
 							patanschrift.getStrasse(), patanschrift.getPlz(),
 							patanschrift.getOrt(), patient.get("Telefon1"),
-							patient.get("Telefon2"), patient.get("Fax"), patient.getMailAddress(),
-							fallID
+							patient.get("Telefon2"), patient.get("Fax"), patient.getMailAddress()
 						};
 					
 					// add the row to the list
